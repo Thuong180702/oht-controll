@@ -37,6 +37,8 @@ class MockOhtData {
       state: MotorState.stopped,
       direction: 'none',
       speed: 0,
+      velocityMps: 0,
+      positionM: 0,
     );
   }
 }

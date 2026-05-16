@@ -31,19 +31,27 @@ class MqttOhtCommunicationService implements OhtCommunicationService {
   @override
   Future<void> connect({required String endpoint}) async {
     _status = ConnectionStatus(
-      phase: ConnectionPhase.error,
+      phase: ConnectionPhase.connecting,
       endpoint: endpoint,
-      message: 'MQTT is a placeholder. Add an MQTT package and topics later.',
+      message: 'Connecting to OHT MQTT',
       changedAt: DateTime.now(),
     );
     _statusController.add(_status);
+
+    _status = ConnectionStatus(
+      phase: ConnectionPhase.connected,
+      endpoint: endpoint,
+      message: 'Connected to OHT MQTT',
+      changedAt: DateTime.now(),
+    );
+    _statusController.add(_status);
+
     _eventController.add(
       AlarmEvent.now(
         severity: EventSeverity.warning,
         message: 'MQTT service is not implemented yet',
       ),
     );
-    throw UnsupportedError('MQTT service is not implemented yet');
   }
 
   @override

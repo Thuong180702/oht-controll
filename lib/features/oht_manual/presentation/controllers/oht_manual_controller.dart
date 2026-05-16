@@ -129,6 +129,37 @@ class OhtManualController {
     }
   }
 
+  Future<bool> waitForFirstTelemetry(Duration timeout) async {
+    if (_protocol == CommunicationProtocol.mock) return true;
+    if (_lastTelemetryAt != null) return true;
+    if (_connectionStatus.phase == ConnectionPhase.error ||
+        _connectionStatus.phase == ConnectionPhase.disconnected) {
+      return false;
+    }
+
+    final deadline = DateTime.now().add(timeout);
+    while (!_disposed && DateTime.now().isBefore(deadline)) {
+      if (_lastTelemetryAt != null) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+
+    if (_disposed) return false;
+    if (_connectionStatus.phase == ConnectionPhase.connected ||
+        _connectionStatus.phase == ConnectionPhase.connecting) {
+      _connectionStatus = _connectionStatus.copyWith(
+        phase: ConnectionPhase.timeout,
+        message: 'Khong ket noi duoc (khong co du lieu trong 3 giay)',
+        changedAt: DateTime.now(),
+      );
+      _addEvent(AlarmEvent.now(
+        severity: EventSeverity.critical,
+        message: 'Khong nhan du lieu trong 3 giay. Ket noi that bai.',
+      ));
+      _bump();
+    }
+    return false;
+  }
+
   Future<void> disconnect() async {
     await _service.disconnect();
     _lastTelemetryAt = null;

@@ -5,9 +5,11 @@ import '../../../../core/enums/event_severity.dart';
 import '../../../../core/enums/lidar_zone.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/time_format.dart';
+import '../../../../core/widgets/pressable.dart';
 import '../../data/services/event_log_excel_exporter.dart';
 import '../../domain/entities/alarm_event.dart';
 import '../controllers/oht_manual_controller.dart';
+import 'motor_display_formatters.dart';
 
 /// Zone 3: Motor status + IO sensors + error log.
 /// Must be placed inside an [Expanded] or widget with bounded height.
@@ -42,6 +44,7 @@ class _MotorStatusSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final motors = controller.telemetry.motors;
+    final sensors = controller.telemetry.sensors;
     return _CardBox(
       title: 'ĐỘNG CƠ',
       icon: Icons.memory_rounded,
@@ -103,7 +106,9 @@ class _MotorStatusSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${m?.speed ?? 0}%  ${m?.direction ?? '-'}',
+                  formatMotorDetails(id, m, sensors),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.textSecondary,
@@ -390,8 +395,10 @@ class _ErrorLogSectionState extends State<_ErrorLogSection> {
           const Divider(height: 1),
           // Latest entry banner (compact)
           if (latest != null)
-            GestureDetector(
+            Pressable(
               onTap: _showFullLog,
+              pressedScale: 0.99,
+              pressedOpacity: 0.78,
               child: Container(
                 margin: const EdgeInsets.all(8),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -762,9 +769,11 @@ class _ActionBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tip,
-      child: InkWell(
+      child: Pressable(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(5),
+        pressedScale: 0.86,
+        pressedOpacity: 0.72,
+        semanticLabel: tip,
         child: Padding(
           padding: const EdgeInsets.all(4),
           child: Icon(icon, size: 14, color: color ?? AppColors.textSecondary),

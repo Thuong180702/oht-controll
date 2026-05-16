@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/oht_ids.dart';
 import '../../../../core/enums/oht_mode.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../domain/entities/motor_status.dart';
+import '../../../../core/widgets/pressable.dart';
 import '../controllers/oht_manual_controller.dart';
+import 'motor_display_formatters.dart';
 
 /// Compact telemetry bar — Mode, Speed, Position, Battery, Errors (clickable).
 class TelemetryBar extends StatelessWidget {
-  const TelemetryBar({required this.controller, this.onErrorTap, super.key});
+  const TelemetryBar({
+    required this.controller,
+    this.onSpeedTap,
+    this.onErrorTap,
+    super.key,
+  });
+
   final OhtManualController controller;
+  final VoidCallback? onSpeedTap;
   final VoidCallback? onErrorTap;
 
   @override
@@ -59,11 +66,22 @@ class TelemetryBar extends StatelessWidget {
         value: _modeLabel(t.mode),
         valueColor: _modeColor(t.mode),
       ),
-      _TelemetryTile(
-        icon: Icons.speed_rounded,
-        label: 'Tốc độ di chuyển',
-        value: '${_travelSpeed(t)}%',
-        valueColor: AppColors.primary,
+      Pressable(
+        enabled: onSpeedTap != null,
+        onTap: onSpeedTap,
+        pressedScale: 0.98,
+        pressedOpacity: 0.78,
+        child: _TelemetryTile(
+          icon: Icons.speed_rounded,
+          label: 'Tốc độ di chuyển',
+          value: formatTravelVelocityMps(t),
+          valueColor: AppColors.primary,
+          trailing: Icon(
+            Icons.tune_rounded,
+            size: 14,
+            color: onSpeedTap != null ? AppColors.primary : AppColors.textHint,
+          ),
+        ),
       ),
       _TelemetryTile(
         icon: Icons.place_rounded,
@@ -81,20 +99,20 @@ class TelemetryBar extends StatelessWidget {
         valueColor: t.batteryLevel > 20 ? AppColors.success : AppColors.error,
       ),
       // Errors — clickable
-      GestureDetector(
+      Pressable(
+        enabled: onErrorTap != null,
         onTap: onErrorTap,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: _TelemetryTile(
-            icon: Icons.error_outline_rounded,
-            label: 'Lỗi',
-            value: t.errors.isEmpty ? 'Không có' : '${t.errors.length} lỗi',
-            valueColor: t.errors.isEmpty ? AppColors.success : AppColors.error,
-            trailing: Icon(
-              Icons.chevron_right_rounded,
-              size: 14,
-              color: AppColors.textHint,
-            ),
+        pressedScale: 0.98,
+        pressedOpacity: 0.78,
+        child: _TelemetryTile(
+          icon: Icons.error_outline_rounded,
+          label: 'Lỗi',
+          value: t.errors.isEmpty ? 'Không có' : '${t.errors.length} lỗi',
+          valueColor: t.errors.isEmpty ? AppColors.success : AppColors.error,
+          trailing: Icon(
+            Icons.chevron_right_rounded,
+            size: 14,
+            color: AppColors.textHint,
           ),
         ),
       ),
@@ -114,16 +132,6 @@ class TelemetryBar extends StatelessWidget {
     OhtMode.maintenance => AppColors.warning,
     OhtMode.error => AppColors.error,
   };
-
-  int _travelSpeed(dynamic t) {
-    final motors = t.motors as Map<String, MotorStatus>;
-    final front = motors[MotorIds.travelFront];
-    final rear = motors[MotorIds.travelRear];
-    final frontSpd = front?.speed ?? 0;
-    final rearSpd = rear?.speed ?? 0;
-    if (frontSpd == 0 && rearSpd == 0) return 0;
-    return ((frontSpd + rearSpd) ~/ 2);
-  }
 }
 
 class _TelemetryTile extends StatelessWidget {

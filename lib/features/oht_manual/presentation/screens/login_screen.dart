@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/auth_storage.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({required this.onLogin, super.key});
@@ -13,11 +15,17 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _usernameCtrl = TextEditingController(text: 'admin');
+  final _usernameCtrl = TextEditingController(
+    text: AuthStorage.defaultUsername,
+  );
   final _passwordCtrl = TextEditingController(text: '');
+  final _usernameFocus = FocusNode();
+  final _passwordFocus = FocusNode();
   final _formKey = GlobalKey<FormState>();
   bool _obscure = true;
   bool _loading = false;
+  bool _authReady = false;
+  String _storedPassword = AuthStorage.defaultPassword;
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
   late final Animation<Offset> _slideAnim;
@@ -35,29 +43,66 @@ class _LoginScreenState extends State<LoginScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
     _animCtrl.forward();
+    _loadAuth();
   }
 
   @override
   void dispose() {
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
     _animCtrl.dispose();
     super.dispose();
   }
 
+  Future<void> _loadAuth() async {
+    await AuthStorage.ensureSeeded();
+    final pwd = await AuthStorage.getPassword();
+    if (!mounted) return;
+    setState(() {
+      _storedPassword = pwd;
+      _authReady = true;
+    });
+  }
+
+  void _showAuthError() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sai tên đăng nhập hoặc mật khẩu.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_authReady) return;
     setState(() => _loading = true);
     await Future.delayed(const Duration(milliseconds: 600));
+    final username = _usernameCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    if (username != AuthStorage.defaultUsername ||
+        password != _storedPassword) {
+      if (mounted) {
+        setState(() => _loading = false);
+        _showAuthError();
+      }
+      return;
+    }
     if (mounted) {
-      widget.onLogin(_usernameCtrl.text.trim());
+      widget.onLogin(username);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final isWide = size.width > 800;
+    final isAndroidCompactLandscape =
+        defaultTargetPlatform == TargetPlatform.android &&
+        size.width > size.height &&
+        size.height < 620;
+    final isWide = size.width > 800 && !isAndroidCompactLandscape;
 
     return Scaffold(
       backgroundColor: AppColors.primary,
@@ -124,6 +169,9 @@ class _LoginScreenState extends State<LoginScreen>
                               const SizedBox(height: 36),
                               TextFormField(
                                 controller: _usernameCtrl,
+                                focusNode: _usernameFocus,
+                                autocorrect: false,
+                                enableSuggestions: false,
                                 decoration: const InputDecoration(
                                   labelText: 'Tên đăng nhập',
                                   prefixIcon: Icon(
@@ -131,6 +179,9 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ),
                                 textInputAction: TextInputAction.next,
+                                onFieldSubmitted: (_) => FocusScope.of(
+                                  context,
+                                ).requestFocus(_passwordFocus),
                                 validator: (v) =>
                                     (v == null || v.trim().isEmpty)
                                     ? 'Nhập tên đăng nhập'
@@ -139,6 +190,7 @@ class _LoginScreenState extends State<LoginScreen>
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _passwordCtrl,
+                                focusNode: _passwordFocus,
                                 obscureText: _obscure,
                                 decoration: InputDecoration(
                                   labelText: 'Mật khẩu',

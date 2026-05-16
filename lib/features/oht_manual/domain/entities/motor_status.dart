@@ -6,6 +6,8 @@ class MotorStatus {
     required this.state,
     required this.direction,
     required this.speed,
+    this.velocityMps,
+    this.positionM,
     this.warning,
   });
 
@@ -13,6 +15,8 @@ class MotorStatus {
   final MotorState state;
   final String direction;
   final int speed;
+  final double? velocityMps;
+  final double? positionM;
   final String? warning;
 
   bool get hasWarning => warning != null && warning!.trim().isNotEmpty;
@@ -32,6 +36,19 @@ class MotorStatus {
       state: MotorStateLabel.fromWire(json['state'] as String?),
       direction: (json['direction'] as String?) ?? 'none',
       speed: _clampSpeed(_asInt(json['speed'])),
+      velocityMps: _asOptionalDouble(
+        json['velocityMps'] ??
+            json['velocity'] ??
+            json['speedMps'] ??
+            json['actualVelocity'] ??
+            json['actualSpeed'],
+      ),
+      positionM: _asOptionalDouble(
+        json['positionM'] ??
+            json['position'] ??
+            json['heightM'] ??
+            json['height'],
+      ),
       warning: json['warning'] as String?,
     );
   }
@@ -40,6 +57,8 @@ class MotorStatus {
     MotorState? state,
     String? direction,
     int? speed,
+    double? velocityMps,
+    double? positionM,
     String? warning,
   }) {
     return MotorStatus(
@@ -47,6 +66,8 @@ class MotorStatus {
       state: state ?? this.state,
       direction: direction ?? this.direction,
       speed: _clampSpeed(speed ?? this.speed),
+      velocityMps: velocityMps ?? this.velocityMps,
+      positionM: positionM ?? this.positionM,
       warning: warning,
     );
   }
@@ -56,6 +77,8 @@ class MotorStatus {
       'state': state.name,
       'direction': direction,
       'speed': speed,
+      if (velocityMps != null) 'velocityMps': velocityMps,
+      if (positionM != null) 'positionM': positionM,
       if (warning != null) 'warning': warning,
     };
   }
@@ -68,6 +91,16 @@ class MotorStatus {
       return value.round();
     }
     return 0;
+  }
+
+  static double? _asOptionalDouble(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
   }
 
   static int _clampSpeed(int value) {

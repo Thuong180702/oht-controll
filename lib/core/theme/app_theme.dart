@@ -59,6 +59,25 @@ class AppTheme {
       onError: Colors.white,
     );
 
+    final filledOverlay = WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.pressed)) {
+        return Colors.white.withValues(alpha: 0.24);
+      }
+      if (states.contains(WidgetState.hovered)) {
+        return Colors.white.withValues(alpha: 0.10);
+      }
+      return null;
+    });
+    final primaryOverlay = WidgetStateProperty.resolveWith<Color?>((states) {
+      if (states.contains(WidgetState.pressed)) {
+        return AppColors.primary.withValues(alpha: 0.18);
+      }
+      if (states.contains(WidgetState.hovered)) {
+        return AppColors.primary.withValues(alpha: 0.08);
+      }
+      return null;
+    });
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
@@ -74,13 +93,24 @@ class AppTheme {
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          minimumSize: const Size(100, 44),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-        ),
+        style:
+            FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(100, 44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ).copyWith(
+              overlayColor: filledOverlay,
+              elevation: WidgetStateProperty.resolveWith<double?>(
+                (states) => states.contains(WidgetState.pressed) ? 0 : null,
+              ),
+            ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -89,7 +119,18 @@ class AppTheme {
           minimumSize: const Size(100, 44),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-        ),
+        ).copyWith(overlayColor: primaryOverlay),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ).copyWith(overlayColor: primaryOverlay),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: AppColors.primary,
+        ).copyWith(overlayColor: primaryOverlay),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -108,7 +149,10 @@ class AppTheme {
         ),
         labelStyle: const TextStyle(color: AppColors.textSecondary),
         prefixIconColor: AppColors.primary,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.surfaceBorder,
@@ -122,7 +166,10 @@ class AppTheme {
         overlayColor: AppColors.primary.withValues(alpha: 0.15),
         trackHeight: 5,
         valueIndicatorColor: AppColors.primaryDark,
-        valueIndicatorTextStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        valueIndicatorTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+        ),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(

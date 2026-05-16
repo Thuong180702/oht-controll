@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/enums/manual_command_type.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/pressable.dart';
 import '../controllers/oht_manual_controller.dart';
+import 'motor_display_formatters.dart';
 
 // ─── Speed Row ───────────────────────────────────────────────────────────────
 class SpeedControlRow extends StatelessWidget {
@@ -85,7 +87,7 @@ class _SpeedSlider extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Container(
-          width: 44,
+          width: 72,
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
           decoration: BoxDecoration(
@@ -93,11 +95,11 @@ class _SpeedSlider extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
-            '$value%',
+            formatCommandSpeedMps(value),
             style: const TextStyle(
               color: AppColors.primary,
               fontWeight: FontWeight.w800,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ),
@@ -156,20 +158,20 @@ class _SmallBtnState extends State<_SmallBtn> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _startTimer(),
-      onTapUp: (_) => _stopTimer(),
-      onTapCancel: _stopTimer,
+    final enabled = widget.onTap != null;
+    return Pressable(
+      enabled: enabled,
+      onPressStart: _startTimer,
+      onPressEnd: _stopTimer,
+      pressedScale: 0.90,
       child: Container(
         width: 26,
         height: 26,
         decoration: BoxDecoration(
-          color: widget.onTap != null
-              ? AppColors.primarySurface
-              : AppColors.surfaceBorder,
+          color: enabled ? AppColors.primarySurface : AppColors.surfaceBorder,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: widget.onTap != null
+            color: enabled
                 ? AppColors.primary.withValues(alpha: 0.4)
                 : Colors.transparent,
           ),
@@ -177,7 +179,7 @@ class _SmallBtnState extends State<_SmallBtn> {
         child: Icon(
           widget.icon,
           size: 14,
-          color: widget.onTap != null ? AppColors.primary : AppColors.textHint,
+          color: enabled ? AppColors.primary : AppColors.textHint,
         ),
       ),
     );
@@ -228,8 +230,10 @@ class _ExpandBtn extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
+      pressedScale: 0.94,
+      pressedOpacity: 0.78,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
         decoration: BoxDecoration(
@@ -368,19 +372,20 @@ class CmdBtn extends StatelessWidget {
 
     return Tooltip(
       message: reason ?? label,
-      child: GestureDetector(
-        onTapDown: enabled && !isStop
-            ? (_) => controller.sendManualCommand(type)
+      child: Pressable(
+        enabled: enabled,
+        onPressStart: enabled && !isStop
+            ? () => controller.sendManualCommand(type)
             : null,
-        onTapUp: enabled && !isStop
-            ? (_) => controller.sendManualCommand(_stopTypeFor(type))
-            : null,
-        onTapCancel: enabled && !isStop
+        onPressEnd: enabled && !isStop
             ? () => controller.sendManualCommand(_stopTypeFor(type))
             : null,
         onTap: enabled && isStop
             ? () => controller.sendManualCommand(type)
             : null,
+        pressedScale: 0.97,
+        pressedOpacity: 0.76,
+        semanticLabel: label,
         child: AnimatedContainer(
           alignment: Alignment.center,
           duration: const Duration(milliseconds: 150),
@@ -469,10 +474,13 @@ class _UnifiedBtn extends StatelessWidget {
         : AppColors.surfaceBorder;
     return Tooltip(
       message: blockReason ?? label,
-      child: GestureDetector(
-        onTapDown: enabled ? (_) => onTapDown?.call() : null,
-        onTapUp: enabled ? (_) => onTapUp?.call() : null,
-        onTapCancel: enabled ? () => onTapUp?.call() : null,
+      child: Pressable(
+        enabled: enabled,
+        onPressStart: enabled ? onTapDown : null,
+        onPressEnd: enabled ? onTapUp : null,
+        pressedScale: 0.97,
+        pressedOpacity: 0.76,
+        semanticLabel: label,
         child: AnimatedContainer(
           alignment: Alignment.center,
           duration: const Duration(milliseconds: 150),
@@ -982,7 +990,7 @@ class _HoistControlBoxState extends State<HoistControlBox> {
                     Expanded(
                       child: CmdBtn(
                         label: 'Nâng\nSau',
-                        icon: Icons.upload_rounded,
+                        icon: Icons.vertical_align_top_rounded,
                         type: ManualCommandType.hoistRearUp,
                         controller: c,
                         width: double.infinity,
@@ -993,7 +1001,7 @@ class _HoistControlBoxState extends State<HoistControlBox> {
                     Expanded(
                       child: CmdBtn(
                         label: 'Hạ\nSau',
-                        icon: Icons.download_rounded,
+                        icon: Icons.vertical_align_bottom_rounded,
                         type: ManualCommandType.hoistRearDown,
                         controller: c,
                         width: double.infinity,
@@ -1061,12 +1069,16 @@ class SystemControlBar extends StatelessWidget {
           const SizedBox(width: 14),
           // E-Stop fills remaining
           Expanded(
-            child: GestureDetector(
+            child: Pressable(
+              enabled: connected,
               onTap: connected
                   ? () => controller.sendManualCommand(
                       ManualCommandType.emergencyStop,
                     )
                   : null,
+              pressedScale: 0.985,
+              pressedOpacity: 0.72,
+              semanticLabel: 'Emergency stop',
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: 48,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -28,6 +29,9 @@ class _ConnectionScreenState extends State<ConnectionScreen>
   final _hostCtrl = TextEditingController(text: '192.168.1.100');
   final _portCtrl = TextEditingController(text: '8080');
   final _pathCtrl = TextEditingController(text: '/ws');
+  final _hostFocus = FocusNode();
+  final _portFocus = FocusNode();
+  final _pathFocus = FocusNode();
   CommunicationProtocol _protocol = CommunicationProtocol.websocket;
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
@@ -57,6 +61,9 @@ class _ConnectionScreenState extends State<ConnectionScreen>
     _hostCtrl.dispose();
     _portCtrl.dispose();
     _pathCtrl.dispose();
+    _hostFocus.dispose();
+    _portFocus.dispose();
+    _pathFocus.dispose();
     _animCtrl.dispose();
     super.dispose();
   }
@@ -70,20 +77,46 @@ class _ConnectionScreenState extends State<ConnectionScreen>
     return '$scheme://$host:$port$path';
   }
 
+  void _hideKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    }
+  }
+
+  void _showConnectError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _connect() async {
+    _hideKeyboard();
     setState(() => _connecting = true);
     await widget.controller.updateConnectionSettings(
       protocol: _protocol,
       webSocketUrl: _buildUrl,
     );
     await widget.controller.connect();
-    if (mounted) {
-      setState(() => _connecting = false);
-      widget.onConnected();
+    final ok = await widget.controller.waitForFirstTelemetry(
+      const Duration(seconds: 3),
+    );
+    if (!mounted) return;
+    setState(() => _connecting = false);
+    if (!ok) {
+      _showConnectError(
+        'Khong ket noi duoc. Khong nhan du lieu trong 3 giay.',
+      );
+      return;
     }
+    widget.onConnected();
   }
 
   Future<void> _connectMock() async {
+    _hideKeyboard();
     setState(() => _connecting = true);
     await widget.controller.updateConnectionSettings(
       protocol: CommunicationProtocol.mock,
@@ -105,10 +138,7 @@ class _ConnectionScreenState extends State<ConnectionScreen>
         child: Column(
           children: [
             // Top bar
-            _TopBar(
-              username: widget.username,
-              onLogout: widget.onLogout,
-            ),
+            _TopBar(username: widget.username, onLogout: widget.onLogout),
             // Content
             Expanded(
               child: Center(
@@ -122,7 +152,8 @@ class _ConnectionScreenState extends State<ConnectionScreen>
                         _SectionHeader(
                           icon: Icons.cable_rounded,
                           title: 'Cấu hình kết nối',
-                          subtitle: 'Thiết lập địa chỉ và giao thức kết nối tới OHT',
+                          subtitle:
+                              'Thiết lập địa chỉ và giao thức kết nối tới OHT',
                         ),
                         const SizedBox(height: 24),
                         // Protocol selector
@@ -133,7 +164,9 @@ class _ConnectionScreenState extends State<ConnectionScreen>
                               final selected = _protocol == p;
                               return Expanded(
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
                                   child: _ProtocolCard(
                                     protocol: p,
                                     selected: selected,
@@ -155,44 +188,67 @@ class _ConnectionScreenState extends State<ConnectionScreen>
                                   children: [
                                     Expanded(
                                       flex: 3,
-                                      child: TextField(
+                                      child: TextFormField(
                                         controller: _hostCtrl,
+                                        focusNode: _hostFocus,
+                                        autocorrect: false,
+                                        enableSuggestions: false,
                                         decoration: const InputDecoration(
                                           labelText: 'Địa chỉ IP / Host',
                                           prefixIcon: Icon(Icons.dns_rounded),
                                           hintText: '192.168.1.100',
                                         ),
+                                        keyboardType: TextInputType.url,
+                                        textInputAction: TextInputAction.next,
+                                        onFieldSubmitted: (_) => FocusScope.of(
+                                          context,
+                                        ).requestFocus(_portFocus),
                                         onChanged: (_) => setState(() {}),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       flex: 1,
-                                      child: TextField(
+                                      child: TextFormField(
                                         controller: _portCtrl,
+                                        focusNode: _portFocus,
+                                        autocorrect: false,
+                                        enableSuggestions: false,
                                         decoration: const InputDecoration(
                                           labelText: 'Port',
-                                          prefixIcon: Icon(Icons.router_rounded),
+                                          prefixIcon: Icon(
+                                            Icons.router_rounded,
+                                          ),
                                           hintText: '8080',
                                         ),
-                                        keyboardType: TextInputType.number,
                                         inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
                                           LengthLimitingTextInputFormatter(5),
                                         ],
+                                        textInputAction: TextInputAction.next,
+                                        onFieldSubmitted: (_) => FocusScope.of(
+                                          context,
+                                        ).requestFocus(_pathFocus),
                                         onChanged: (_) => setState(() {}),
                                       ),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                TextField(
+                                TextFormField(
                                   controller: _pathCtrl,
+                                  focusNode: _pathFocus,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
                                   decoration: const InputDecoration(
                                     labelText: 'Path / Topic',
                                     prefixIcon: Icon(Icons.link_rounded),
                                     hintText: '/ws',
                                   ),
+                                  keyboardType: TextInputType.url,
+                                  textInputAction: TextInputAction.done,
+                                  onFieldSubmitted: (_) => _connect(),
                                   onChanged: (_) => setState(() {}),
                                 ),
                                 const SizedBox(height: 12),
@@ -207,7 +263,9 @@ class _ConnectionScreenState extends State<ConnectionScreen>
                                     color: AppColors.primarySurface,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: AppColors.primary.withValues(alpha: 0.3),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.3,
+                                      ),
                                     ),
                                   ),
                                   child: Row(
@@ -328,8 +386,11 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
           Row(
             children: [
-              const Icon(Icons.account_circle_rounded,
-                  color: Colors.white70, size: 20),
+              const Icon(
+                Icons.account_circle_rounded,
+                color: Colors.white70,
+                size: 20,
+              ),
               const SizedBox(width: 6),
               Text(
                 username,
@@ -338,8 +399,11 @@ class _TopBar extends StatelessWidget {
               const SizedBox(width: 16),
               TextButton.icon(
                 onPressed: onLogout,
-                icon: const Icon(Icons.logout_rounded,
-                    color: Colors.white70, size: 18),
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  color: Colors.white70,
+                  size: 18,
+                ),
                 label: const Text(
                   'Đăng xuất',
                   style: TextStyle(color: Colors.white70),
@@ -383,15 +447,15 @@ class _SectionHeader extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
             ),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -420,10 +484,10 @@ class _PanelCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
           ),
           const SizedBox(height: 16),
           child,
