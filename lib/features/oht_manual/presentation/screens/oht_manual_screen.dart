@@ -1331,10 +1331,7 @@ class _TopBar extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   username,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -1456,9 +1453,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
               controller: _oldCtrl,
               obscureText: true,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Mật khẩu cũ',
-              ),
+              decoration: const InputDecoration(labelText: 'Mật khẩu cũ'),
               onChanged: (_) => setState(() => _errorText = null),
             ),
             const SizedBox(height: 12),
@@ -1466,9 +1461,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
               controller: _newCtrl,
               obscureText: true,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Mật khẩu mới',
-              ),
+              decoration: const InputDecoration(labelText: 'Mật khẩu mới'),
               onChanged: (_) => setState(() => _errorText = null),
             ),
             const SizedBox(height: 12),

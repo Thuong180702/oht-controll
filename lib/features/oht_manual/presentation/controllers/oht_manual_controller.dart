@@ -122,10 +122,12 @@ class OhtManualController {
     try {
       await _service.connect(endpoint: activeEndpoint);
     } catch (error) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.critical,
-        message: 'Connect failed: $error',
-      ));
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message: 'Connect failed: $error',
+        ),
+      );
     }
   }
 
@@ -151,10 +153,12 @@ class OhtManualController {
         message: 'Khong ket noi duoc (khong co du lieu trong 3 giay)',
         changedAt: DateTime.now(),
       );
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.critical,
-        message: 'Khong nhan du lieu trong 3 giay. Ket noi that bai.',
-      ));
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message: 'Khong nhan du lieu trong 3 giay. Ket noi that bai.',
+        ),
+      );
       _bump();
     }
     return false;
@@ -191,21 +195,25 @@ class OhtManualController {
       );
     }
 
-    _addEvent(AlarmEvent.now(
-      severity: EventSeverity.info,
-      message:
-          'Connection configured for ${protocol.label} at $activeEndpoint',
-    ));
+    _addEvent(
+      AlarmEvent.now(
+        severity: EventSeverity.info,
+        message:
+            'Connection configured for ${protocol.label} at $activeEndpoint',
+      ),
+    );
     _bump();
   }
 
   Future<void> sendManualCommand(ManualCommandType type) async {
     final blockReason = blockReasonFor(type);
     if (blockReason != null) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.warning,
-        message: 'Blocked ${type.wireName}: $blockReason',
-      ));
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.warning,
+          message: 'Blocked ${type.wireName}: $blockReason',
+        ),
+      );
       return;
     }
 
@@ -226,19 +234,23 @@ class OhtManualController {
       _bump();
     }
 
-    _addEvent(AlarmEvent.now(
-      severity: EventSeverity.command,
-      message:
-          'Sent ${command.type.wireName} target=${command.target} speed=${command.speed}% requestId=${command.requestId}',
-    ));
+    _addEvent(
+      AlarmEvent.now(
+        severity: EventSeverity.command,
+        message:
+            'Sent ${command.type.wireName} target=${command.target} speed=${command.speed}% requestId=${command.requestId}',
+      ),
+    );
 
     try {
       await _service.sendCommand(command);
     } catch (error) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.critical,
-        message: 'Command failed ${command.type.wireName}: $error',
-      ));
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message: 'Command failed ${command.type.wireName}: $error',
+        ),
+      );
     }
   }
 
@@ -258,10 +270,12 @@ class OhtManualController {
 
   /// Send both front and rear hoist commands at once (unified mode).
   Future<void> sendUnifiedHoist({required bool up}) async {
-    final frontType =
-        up ? ManualCommandType.hoistFrontUp : ManualCommandType.hoistFrontDown;
-    final rearType =
-        up ? ManualCommandType.hoistRearUp : ManualCommandType.hoistRearDown;
+    final frontType = up
+        ? ManualCommandType.hoistFrontUp
+        : ManualCommandType.hoistFrontDown;
+    final rearType = up
+        ? ManualCommandType.hoistRearUp
+        : ManualCommandType.hoistRearDown;
     await sendManualCommand(frontType);
     await sendManualCommand(rearType);
   }
@@ -273,11 +287,13 @@ class OhtManualController {
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
     if (hasCriticalError) return 'Critical OHT error is active';
     if (left) {
-      if (_telemetry.sensors.steerFrontLeft == true && _telemetry.sensors.steerRearLeft == true) {
+      if (_telemetry.sensors.steerFrontLeft == true &&
+          _telemetry.sensors.steerRearLeft == true) {
         return 'Both steer left limits active';
       }
     } else {
-      if (_telemetry.sensors.steerFrontRight == true && _telemetry.sensors.steerRearRight == true) {
+      if (_telemetry.sensors.steerFrontRight == true &&
+          _telemetry.sensors.steerRearRight == true) {
         return 'Both steer right limits active';
       }
     }
@@ -291,7 +307,8 @@ class OhtManualController {
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
     if (hasCriticalError) return 'Critical OHT error is active';
     if (up) {
-      if (_telemetry.sensors.hoistFrontUpperLimit == true && _telemetry.sensors.hoistRearUpperLimit == true) {
+      if (_telemetry.sensors.hoistFrontUpperLimit == true &&
+          _telemetry.sensors.hoistRearUpperLimit == true) {
         return 'Both hoist upper limits active';
       }
     }
@@ -391,10 +408,12 @@ class OhtManualController {
           message: 'Telemetry restored',
           changedAt: DateTime.now(),
         );
-        _addEvent(AlarmEvent.now(
-          severity: EventSeverity.info,
-          message: 'Telemetry restored',
-        ));
+        _addEvent(
+          AlarmEvent.now(
+            severity: EventSeverity.info,
+            message: 'Telemetry restored',
+          ),
+        );
       }
       _inspectTelemetry(previous, telemetry);
       _bump();
@@ -408,12 +427,14 @@ class OhtManualController {
       }
       if (status.phase == ConnectionPhase.error ||
           status.phase == ConnectionPhase.disconnected) {
-        _addEvent(AlarmEvent.now(
-          severity: status.phase == ConnectionPhase.error
-              ? EventSeverity.critical
-              : EventSeverity.info,
-          message: status.message,
-        ));
+        _addEvent(
+          AlarmEvent.now(
+            severity: status.phase == ConnectionPhase.error
+                ? EventSeverity.critical
+                : EventSeverity.info,
+            message: status.message,
+          ),
+        );
       }
       _bump();
     });
@@ -438,10 +459,12 @@ class OhtManualController {
       message: 'Telemetry timeout > 2 seconds',
       changedAt: DateTime.now(),
     );
-    _addEvent(AlarmEvent.now(
-      severity: EventSeverity.critical,
-      message: 'Telemetry timeout > 2 seconds. Manual commands disabled.',
-    ));
+    _addEvent(
+      AlarmEvent.now(
+        severity: EventSeverity.critical,
+        message: 'Telemetry timeout > 2 seconds. Manual commands disabled.',
+      ),
+    );
     _bump();
   }
 
@@ -467,38 +490,52 @@ class OhtManualController {
       current: current.sensors.hoistRearUpperLimit,
     );
 
-    if (previous.batteryLevel > 20 && current.batteryLevel <= 20 && !current.isCharging) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.warning,
-        message: 'Cảnh báo: Pin yếu (${current.batteryLevel}%)',
-      ));
+    if (previous.batteryLevel > 20 &&
+        current.batteryLevel <= 20 &&
+        !current.isCharging) {
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.warning,
+          message: 'Cảnh báo: Pin yếu (${current.batteryLevel}%)',
+        ),
+      );
     }
-    if (previous.sensors.pumperFront != true && current.sensors.pumperFront == true) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.critical,
-        message: 'LỖI: Va chạm Pumper trước!',
-      ));
+    if (previous.sensors.pumperFront != true &&
+        current.sensors.pumperFront == true) {
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message: 'LỖI: Va chạm Pumper trước!',
+        ),
+      );
     }
-    if (previous.sensors.pumperRear != true && current.sensors.pumperRear == true) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.critical,
-        message: 'LỖI: Va chạm Pumper sau!',
-      ));
+    if (previous.sensors.pumperRear != true &&
+        current.sensors.pumperRear == true) {
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message: 'LỖI: Va chạm Pumper sau!',
+        ),
+      );
     }
 
     if (!previous.emergencyStop && current.emergencyStop) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.critical,
-        message: 'Emergency stop is active',
-      ));
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message: 'Emergency stop is active',
+        ),
+      );
     }
 
     for (final error in current.errors) {
       if (!previous.errors.contains(error)) {
-        _addEvent(AlarmEvent.now(
-          severity: EventSeverity.critical,
-          message: 'OHT error: $error',
-        ));
+        _addEvent(
+          AlarmEvent.now(
+            severity: EventSeverity.critical,
+            message: 'OHT error: $error',
+          ),
+        );
       }
     }
   }
@@ -510,16 +547,20 @@ class OhtManualController {
   }) {
     if (previous == current) return;
     if (current == LidarZone.danger) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.critical,
-        message:
-            '$label danger zone. travel_forward is blocked; stop advised.',
-      ));
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message:
+              '$label danger zone. travel_forward is blocked; stop advised.',
+        ),
+      );
     } else if (current == LidarZone.warning) {
-      _addEvent(AlarmEvent.now(
-        severity: EventSeverity.warning,
-        message: '$label warning zone',
-      ));
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.warning,
+          message: '$label warning zone',
+        ),
+      );
     }
   }
 
@@ -529,10 +570,12 @@ class OhtManualController {
     required bool? current,
   }) {
     if (previous == true || current != true) return;
-    _addEvent(AlarmEvent.now(
-      severity: EventSeverity.warning,
-      message: '$label active. Up command is blocked.',
-    ));
+    _addEvent(
+      AlarmEvent.now(
+        severity: EventSeverity.warning,
+        message: '$label active. Up command is blocked.',
+      ),
+    );
   }
 
   void _addEvent(AlarmEvent event) {

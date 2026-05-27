@@ -86,10 +86,7 @@ class _ConnectionScreenState extends State<ConnectionScreen>
 
   void _showConnectError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -107,9 +104,7 @@ class _ConnectionScreenState extends State<ConnectionScreen>
     if (!mounted) return;
     setState(() => _connecting = false);
     if (!ok) {
-      _showConnectError(
-        'Khong ket noi duoc. Khong nhan du lieu trong 3 giay.',
-      );
+      _showConnectError('Khong ket noi duoc. Khong nhan du lieu trong 3 giay.');
       return;
     }
     widget.onConnected();
