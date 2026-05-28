@@ -22,9 +22,9 @@ class SpeedControlRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.speed_rounded, size: 15, color: AppColors.primary),
+          Icon(Icons.speed_rounded, size: 15, color: AppColors.primary),
           const SizedBox(width: 6),
-          const Text(
+          Text(
             'TỐC ĐỘ',
             style: TextStyle(
               fontSize: 11,
@@ -74,7 +74,7 @@ class _SpeedSlider extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
             color: AppColors.textSecondary,
@@ -96,7 +96,7 @@ class _SpeedSlider extends StatelessWidget {
           ),
           child: Text(
             formatCommandSpeedMps(value),
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.primary,
               fontWeight: FontWeight.w800,
               fontSize: 11,
@@ -1036,9 +1036,9 @@ class SystemControlBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.settings_rounded, size: 13, color: AppColors.error),
+          Icon(Icons.settings_rounded, size: 13, color: AppColors.error),
           const SizedBox(width: 6),
-          const Text(
+          Text(
             'HỆ THỐNG',
             style: TextStyle(
               fontSize: 11,
@@ -1117,7 +1117,7 @@ class SystemControlBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'EMERGENCY STOP',
+                      'DỪNG KHẨN CẤP',
                       style: TextStyle(
                         color: connected ? Colors.white : Colors.white54,
                         fontSize: 13,

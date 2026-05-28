@@ -109,7 +109,7 @@ class _MotorStatusSection extends StatelessWidget {
                   formatMotorDetails(id, m, sensors),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w600,
@@ -202,7 +202,7 @@ class _SensorIOSection extends StatelessWidget {
                     Expanded(
                       child: Text(
                         e.value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textSecondary,
@@ -283,7 +283,7 @@ class _LidarBar extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textSecondary,
@@ -347,13 +347,13 @@ class _ErrorLogSectionState extends State<_ErrorLogSection> {
             padding: const EdgeInsets.fromLTRB(10, 8, 6, 0),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.receipt_long_rounded,
                   size: 12,
                   color: AppColors.primary,
                 ),
                 const SizedBox(width: 5),
-                const Text(
+                Text(
                   'LOG SỰ KIỆN',
                   style: TextStyle(
                     fontSize: 10,
@@ -366,10 +366,7 @@ class _ErrorLogSectionState extends State<_ErrorLogSection> {
                 if (events.isNotEmpty)
                   Text(
                     '${events.length}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.textHint,
-                    ),
+                    style: TextStyle(fontSize: 10, color: AppColors.textHint),
                   ),
                 const SizedBox(width: 4),
                 _ActionBtn(
@@ -392,7 +389,7 @@ class _ErrorLogSectionState extends State<_ErrorLogSection> {
             ),
           ),
           const SizedBox(height: 4),
-          const Divider(height: 1),
+          Divider(height: 1),
           // Latest entry banner (compact)
           if (latest != null)
             Pressable(
@@ -429,7 +426,7 @@ class _ErrorLogSectionState extends State<_ErrorLogSection> {
                         ),
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       size: 12,
                       color: AppColors.textHint,
@@ -446,7 +443,7 @@ class _ErrorLogSectionState extends State<_ErrorLogSection> {
                 color: AppColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(
                     Icons.check_circle_outline_rounded,
@@ -470,8 +467,7 @@ class _ErrorLogSectionState extends State<_ErrorLogSection> {
                 ? ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     itemCount: events.length > 5 ? 5 : events.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
+                    separatorBuilder: (context, index) => Divider(height: 1),
                     itemBuilder: (context, i) => _LogRow(event: events[i]),
                   )
                 : const SizedBox(),
@@ -495,7 +491,7 @@ class _LogRow extends StatelessWidget {
         children: [
           Text(
             formatClock(event.timestamp),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9,
               color: AppColors.textHint,
               fontFamily: 'monospace',
@@ -546,19 +542,19 @@ class _FullLogDialog extends StatelessWidget {
             // Header
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.receipt_long_rounded,
                     color: Colors.white,
                     size: 18,
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Toàn bộ log lỗi / sự kiện',
                       style: TextStyle(
@@ -570,12 +566,12 @@ class _FullLogDialog extends StatelessWidget {
                   ),
                   Text(
                     '${events.length} mục',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                   const SizedBox(width: 10),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
                       color: Colors.white,
                       size: 18,
@@ -587,7 +583,7 @@ class _FullLogDialog extends StatelessWidget {
             // List
             Expanded(
               child: events.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'Không có sự kiện',
                         style: TextStyle(color: AppColors.textHint),
@@ -596,13 +592,12 @@ class _FullLogDialog extends StatelessWidget {
                   : ListView.separated(
                       padding: const EdgeInsets.all(12),
                       itemCount: events.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
+                      separatorBuilder: (context, index) => Divider(height: 1),
                       itemBuilder: (context, i) => _FullRow(event: events[i]),
                     ),
             ),
             // Actions
-            const Divider(height: 1),
+            Divider(height: 1),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
@@ -610,23 +605,23 @@ class _FullLogDialog extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: () =>
                         _downloadEventsAsExcel(context, controller),
-                    icon: const Icon(Icons.download_rounded, size: 14),
-                    label: const Text('Tải xuống Excel'),
+                    icon: Icon(Icons.download_rounded, size: 14),
+                    label: Text('Tải xuống Excel'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 34),
-                      textStyle: const TextStyle(fontSize: 12),
+                      textStyle: TextStyle(fontSize: 12),
                     ),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: controller.clearEvents,
-                    icon: const Icon(Icons.delete_outline_rounded, size: 14),
-                    label: const Text('Xóa log'),
+                    icon: Icon(Icons.delete_outline_rounded, size: 14),
+                    label: Text('Xóa log'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
+                      side: BorderSide(color: AppColors.error),
                       minimumSize: const Size(0, 34),
-                      textStyle: const TextStyle(fontSize: 12),
+                      textStyle: TextStyle(fontSize: 12),
                     ),
                   ),
                   const Spacer(),
@@ -634,9 +629,9 @@ class _FullLogDialog extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 34),
-                      textStyle: const TextStyle(fontSize: 12),
+                      textStyle: TextStyle(fontSize: 12),
                     ),
-                    child: const Text('Đóng'),
+                    child: Text('Đóng'),
                   ),
                 ],
               ),
@@ -665,7 +660,7 @@ class _FullRow extends StatelessWidget {
             '${t.hour.toString().padLeft(2, '0')}:'
             '${t.minute.toString().padLeft(2, '0')}:'
             '${t.second.toString().padLeft(2, '0')}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               color: AppColors.textHint,
               fontFamily: 'monospace',
@@ -692,7 +687,7 @@ class _FullRow extends StatelessWidget {
           Expanded(
             child: Text(
               event.message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w500,
@@ -736,7 +731,7 @@ class _CardBox extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textSecondary,

@@ -165,7 +165,7 @@ class _TelemetryTile extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     color: AppColors.textHint,
                     fontWeight: FontWeight.w600,

@@ -24,21 +24,23 @@ import '../../domain/repositories/oht_communication_service.dart';
 /// no rebuild is ever triggered from inside a stream callback or during
 /// Flutter's layout/paint phase.
 class OhtManualController {
-  OhtManualController() {
-    _service = MockOhtCommunicationService();
-    _connectionStatus = ConnectionStatus.disconnected(
-      endpoint: AppConstants.mockEndpoint,
-    );
+  OhtManualController({OhtCommunicationService? service}) {
+    _service = service ?? MockOhtCommunicationService();
+    _connectionStatus =
+        service?.status ??
+        ConnectionStatus.disconnected(endpoint: AppConstants.mockEndpoint);
     _bindService();
     _watchdog = Timer.periodic(const Duration(milliseconds: 500), (_) {
       _checkTelemetryTimeout();
     });
-    _addEvent(
-      AlarmEvent.now(
-        severity: EventSeverity.info,
-        message: 'Mock mode is enabled by default',
-      ),
-    );
+    if (service == null) {
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.info,
+          message: 'Mock mode is enabled by default',
+        ),
+      );
+    }
   }
 
   late OhtCommunicationService _service;
@@ -205,7 +207,10 @@ class OhtManualController {
     _bump();
   }
 
-  Future<void> sendManualCommand(ManualCommandType type) async {
+  Future<void> sendManualCommand(
+    ManualCommandType type, {
+    int? speedOverride,
+  }) async {
     final blockReason = blockReasonFor(type);
     if (blockReason != null) {
       _addEvent(
@@ -220,7 +225,7 @@ class OhtManualController {
     final command = ManualCommand(
       type: type,
       target: _targetFor(type),
-      speed: _speedFor(type),
+      speed: _speedFor(type, speedOverride: speedOverride),
       requestId: _nextRequestId(),
       timestamp: DateTime.now(),
     );
@@ -322,9 +327,9 @@ class OhtManualController {
   }
 
   String? blockReasonFor(ManualCommandType type) {
-    if (!isConnected) return 'OHT is not connected';
     if (type == ManualCommandType.emergencyStop) return null;
     if (type == ManualCommandType.resetError) return null;
+    if (!isConnected) return 'OHT is not connected';
     if (emergencyStopActive) return 'Emergency stop is active';
     if (type == ManualCommandType.setManualMode) return null;
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
@@ -363,6 +368,7 @@ class OhtManualController {
   }
 
   void dispose() {
+    if (_disposed) return;
     _disposed = true;
     _watchdog?.cancel();
     _telemetrySubscription?.cancel();
@@ -469,15 +475,31 @@ class OhtManualController {
   }
 
   void _inspectTelemetry(OhtTelemetry previous, OhtTelemetry current) {
+    final newErrors = current.errors
+        .where((error) => !previous.errors.contains(error))
+        .toList(growable: false);
+    final newLidarDanger =
+        (previous.sensors.lidarUpperZone != LidarZone.danger &&
+            current.sensors.lidarUpperZone == LidarZone.danger) ||
+        (previous.sensors.lidarLowerZone != LidarZone.danger &&
+            current.sensors.lidarLowerZone == LidarZone.danger);
+    final newBumperHit =
+        (previous.sensors.pumperFront != true &&
+            current.sensors.pumperFront == true) ||
+        (previous.sensors.pumperRear != true &&
+            current.sensors.pumperRear == true);
+
     _inspectLidar(
       label: 'Lidar Upper',
       previous: previous.sensors.lidarUpperZone,
       current: current.sensors.lidarUpperZone,
+      logDanger: newErrors.isEmpty,
     );
     _inspectLidar(
       label: 'Lidar Lower',
       previous: previous.sensors.lidarLowerZone,
       current: current.sensors.lidarLowerZone,
+      logDanger: newErrors.isEmpty,
     );
     _inspectUpperLimit(
       label: 'Front hoist upper limit',
@@ -501,7 +523,8 @@ class OhtManualController {
       );
     }
     if (previous.sensors.pumperFront != true &&
-        current.sensors.pumperFront == true) {
+        current.sensors.pumperFront == true &&
+        newErrors.isEmpty) {
       _addEvent(
         AlarmEvent.now(
           severity: EventSeverity.critical,
@@ -510,7 +533,8 @@ class OhtManualController {
       );
     }
     if (previous.sensors.pumperRear != true &&
-        current.sensors.pumperRear == true) {
+        current.sensors.pumperRear == true &&
+        newErrors.isEmpty) {
       _addEvent(
         AlarmEvent.now(
           severity: EventSeverity.critical,
@@ -519,7 +543,11 @@ class OhtManualController {
       );
     }
 
-    if (!previous.emergencyStop && current.emergencyStop) {
+    if (!previous.emergencyStop &&
+        current.emergencyStop &&
+        newErrors.isEmpty &&
+        !newLidarDanger &&
+        !newBumperHit) {
       _addEvent(
         AlarmEvent.now(
           severity: EventSeverity.critical,
@@ -528,15 +556,13 @@ class OhtManualController {
       );
     }
 
-    for (final error in current.errors) {
-      if (!previous.errors.contains(error)) {
-        _addEvent(
-          AlarmEvent.now(
-            severity: EventSeverity.critical,
-            message: 'OHT error: $error',
-          ),
-        );
-      }
+    for (final error in newErrors) {
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.critical,
+          message: 'OHT error: $error',
+        ),
+      );
     }
   }
 
@@ -544,9 +570,11 @@ class OhtManualController {
     required String label,
     required LidarZone previous,
     required LidarZone current,
+    required bool logDanger,
   }) {
     if (previous == current) return;
     if (current == LidarZone.danger) {
+      if (!logDanger) return;
       _addEvent(
         AlarmEvent.now(
           severity: EventSeverity.critical,
@@ -591,7 +619,8 @@ class OhtManualController {
     return 'cmd_${_requestCounter.toString().padLeft(4, '0')}';
   }
 
-  int _speedFor(ManualCommandType type) {
+  int _speedFor(ManualCommandType type, {int? speedOverride}) {
+    final overriddenSpeed = speedOverride?.clamp(0, 100).toInt();
     switch (type) {
       case ManualCommandType.travelStop:
       case ManualCommandType.steerStop:
@@ -606,17 +635,17 @@ class OhtManualController {
       case ManualCommandType.travelFrontBackward:
       case ManualCommandType.travelRearForward:
       case ManualCommandType.travelRearBackward:
-        return _travelSpeed;
+        return overriddenSpeed ?? _travelSpeed;
       case ManualCommandType.steerFrontLeft:
       case ManualCommandType.steerFrontRight:
       case ManualCommandType.steerRearLeft:
       case ManualCommandType.steerRearRight:
-        return _steerSpeed;
+        return overriddenSpeed ?? _steerSpeed;
       case ManualCommandType.hoistFrontUp:
       case ManualCommandType.hoistFrontDown:
       case ManualCommandType.hoistRearUp:
       case ManualCommandType.hoistRearDown:
-        return _hoistSpeed;
+        return overriddenSpeed ?? _hoistSpeed;
     }
   }
 

@@ -1,46 +1,174 @@
 import 'package:flutter/material.dart';
 
+class _AppColorPalette {
+  const _AppColorPalette({
+    required this.primary,
+    required this.primaryDark,
+    required this.primaryLight,
+    required this.primarySurface,
+    required this.primarySurfaceLight,
+    required this.background,
+    required this.surface,
+    required this.surfaceVariant,
+    required this.surfaceBorder,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textHint,
+    required this.success,
+    required this.successBg,
+    required this.warning,
+    required this.warningBg,
+    required this.error,
+    required this.errorBg,
+    required this.info,
+    required this.infoBg,
+    required this.emergency,
+    required this.emergencyBright,
+  });
+
+  final Color primary;
+  final Color primaryDark;
+  final Color primaryLight;
+  final Color primarySurface;
+  final Color primarySurfaceLight;
+  final Color background;
+  final Color surface;
+  final Color surfaceVariant;
+  final Color surfaceBorder;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textHint;
+  final Color success;
+  final Color successBg;
+  final Color warning;
+  final Color warningBg;
+  final Color error;
+  final Color errorBg;
+  final Color info;
+  final Color infoBg;
+  final Color emergency;
+  final Color emergencyBright;
+}
+
 class AppColors {
   const AppColors._();
 
-  // Primary palette
-  static const primary = Color(0xFF07539D);
-  static const primaryDark = Color(0xFF053F7A);
-  static const primaryLight = Color(0xFF1A6DB8);
-  static const primarySurface = Color(0xFFE8F1FA);
-  static const primarySurfaceLight = Color(0xFFF0F6FC);
+  static const _light = _AppColorPalette(
+    primary: Color(0xFF07539D),
+    primaryDark: Color(0xFF053F7A),
+    primaryLight: Color(0xFF1A6DB8),
+    primarySurface: Color(0xFFE8F1FA),
+    primarySurfaceLight: Color(0xFFF0F6FC),
+    background: Color(0xFFF7FAFE),
+    surface: Color(0xFFFFFFFF),
+    surfaceVariant: Color(0xFFF1F4F8),
+    surfaceBorder: Color(0xFFD1DDE9),
+    textPrimary: Color(0xFF0A1929),
+    textSecondary: Color(0xFF4A6080),
+    textHint: Color(0xFF8DA3B8),
+    success: Color(0xFF16A34A),
+    successBg: Color(0xFFDCFCE7),
+    warning: Color(0xFFD97706),
+    warningBg: Color(0xFFFEF3C7),
+    error: Color(0xFFDC2626),
+    errorBg: Color(0xFFFEE2E2),
+    info: Color(0xFF0284C7),
+    infoBg: Color(0xFFE0F2FE),
+    emergency: Color(0xFFB91C1C),
+    emergencyBright: Color(0xFFEF4444),
+  );
 
-  // Background
-  static const background = Color(0xFFF4F7FB);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceVariant = Color(0xFFF0F4F9);
-  static const surfaceBorder = Color(0xFFD1DDE9);
+  static const _dark = _AppColorPalette(
+    primary: Color(0xFF67B7FF),
+    primaryDark: Color(0xFF2D8FE8),
+    primaryLight: Color(0xFF9DCCFF),
+    primarySurface: Color(0xFF102F4D),
+    primarySurfaceLight: Color(0xFF0D243D),
+    background: Color(0xFF07111F),
+    surface: Color(0xFF101826),
+    surfaceVariant: Color(0xFF172235),
+    surfaceBorder: Color(0xFF33465F),
+    textPrimary: Color(0xFFE7EEF8),
+    textSecondary: Color(0xFFB6C6D9),
+    textHint: Color(0xFF7F94AA),
+    success: Color(0xFF4ADE80),
+    successBg: Color(0xFF11351F),
+    warning: Color(0xFFF59E0B),
+    warningBg: Color(0xFF3D2A0A),
+    error: Color(0xFFF87171),
+    errorBg: Color(0xFF3B1518),
+    info: Color(0xFF38BDF8),
+    infoBg: Color(0xFF0B2E43),
+    emergency: Color(0xFFDC2626),
+    emergencyBright: Color(0xFFF87171),
+  );
 
-  // Text
-  static const textPrimary = Color(0xFF0A1929);
-  static const textSecondary = Color(0xFF4A6080);
-  static const textHint = Color(0xFF8DA3B8);
+  static bool _darkMode = false;
 
-  // Status colors
-  static const success = Color(0xFF16A34A);
-  static const successBg = Color(0xFFDCFCE7);
-  static const warning = Color(0xFFD97706);
-  static const warningBg = Color(0xFFFEF3C7);
-  static const error = Color(0xFFDC2626);
-  static const errorBg = Color(0xFFFEE2E2);
-  static const info = Color(0xFF0284C7);
-  static const infoBg = Color(0xFFE0F2FE);
+  static void setDarkMode(bool enabled) {
+    _darkMode = enabled;
+  }
 
-  // Emergency
-  static const emergency = Color(0xFFB91C1C);
-  static const emergencyBright = Color(0xFFEF4444);
+  static _AppColorPalette get _active => _darkMode ? _dark : _light;
+
+  static Color get primary => _active.primary;
+  static Color get primaryDark => _active.primaryDark;
+  static Color get primaryLight => _active.primaryLight;
+  static Color get primarySurface => _active.primarySurface;
+  static Color get primarySurfaceLight => _active.primarySurfaceLight;
+  static Color get background => _active.background;
+  static Color get surface => _active.surface;
+  static Color get surfaceVariant => _active.surfaceVariant;
+  static Color get surfaceBorder => _active.surfaceBorder;
+  static Color get textPrimary => _active.textPrimary;
+  static Color get textSecondary => _active.textSecondary;
+  static Color get textHint => _active.textHint;
+  static Color get success => _active.success;
+  static Color get successBg => _active.successBg;
+  static Color get warning => _active.warning;
+  static Color get warningBg => _active.warningBg;
+  static Color get error => _active.error;
+  static Color get errorBg => _active.errorBg;
+  static Color get info => _active.info;
+  static Color get infoBg => _active.infoBg;
+  static Color get emergency => _active.emergency;
+  static Color get emergencyBright => _active.emergencyBright;
 }
 
 class AppTheme {
   const AppTheme._();
 
+  static ThemeData dark() {
+    final base = light();
+    final colorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFF67B7FF),
+      onPrimary: Color(0xFF041A2F),
+      primaryContainer: Color(0xFF0D3155),
+      onPrimaryContainer: Color(0xFFD8ECFF),
+      secondary: Color(0xFF9DCCFF),
+      onSecondary: Color(0xFF08213A),
+      secondaryContainer: Color(0xFF14304D),
+      onSecondaryContainer: Color(0xFFD7E9FF),
+      surface: Color(0xFF101826),
+      onSurface: Color(0xFFE7EEF8),
+      surfaceContainerHighest: Color(0xFF172235),
+      onSurfaceVariant: Color(0xFFB6C6D9),
+      outline: Color(0xFF33465F),
+      error: AppColors.error,
+      onError: Colors.white,
+    );
+
+    return base.copyWith(
+      brightness: Brightness.dark,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: const Color(0xFF0B1220),
+      dialogTheme: DialogThemeData(backgroundColor: Color(0xFF101826)),
+    );
+  }
+
   static ThemeData light() {
-    const colorScheme = ColorScheme(
+    final colorScheme = ColorScheme(
       brightness: Brightness.light,
       primary: AppColors.primary,
       onPrimary: Colors.white,
@@ -82,14 +210,14 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'Roboto',
+      fontFamily: 'Inter',
       cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: AppColors.surfaceBorder, width: 1),
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: AppColors.surfaceBorder, width: 1),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -99,12 +227,9 @@ class AppTheme {
               foregroundColor: Colors.white,
               minimumSize: const Size(100, 44),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
               ),
-              textStyle: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
+              textStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
             ).copyWith(
               overlayColor: filledOverlay,
               elevation: WidgetStateProperty.resolveWith<double?>(
@@ -115,16 +240,16 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary),
+          side: BorderSide(color: AppColors.primary),
           minimumSize: const Size(100, 44),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          textStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ).copyWith(overlayColor: primaryOverlay),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         ).copyWith(overlayColor: primaryOverlay),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -136,25 +261,25 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.surfaceVariant,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.surfaceBorder),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: AppColors.surfaceBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.surfaceBorder),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: AppColors.surfaceBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(4),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        labelStyle: TextStyle(color: AppColors.textSecondary),
         prefixIconColor: AppColors.primary,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
       ),
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: AppColors.surfaceBorder,
         thickness: 1,
         space: 1,
@@ -166,17 +291,14 @@ class AppTheme {
         overlayColor: AppColors.primary.withValues(alpha: 0.15),
         trackHeight: 5,
         valueIndicatorColor: AppColors.primaryDark,
-        valueIndicatorTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-        ),
+        valueIndicatorTextStyle: TextStyle(color: Colors.white, fontSize: 12),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: AppColors.primaryDark,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
         ),
-        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+        textStyle: TextStyle(color: Colors.white, fontSize: 12),
       ),
     );
   }

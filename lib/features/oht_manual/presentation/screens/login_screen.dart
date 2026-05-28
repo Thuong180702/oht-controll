@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/app_locale.dart';
 import '../../../../core/utils/auth_storage.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,36 +14,23 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   final _usernameCtrl = TextEditingController(
     text: AuthStorage.defaultUsername,
   );
-  final _passwordCtrl = TextEditingController(text: '');
+  final _passwordCtrl = TextEditingController();
   final _usernameFocus = FocusNode();
   final _passwordFocus = FocusNode();
   final _formKey = GlobalKey<FormState>();
+
   bool _obscure = true;
   bool _loading = false;
   bool _authReady = false;
   String _storedPassword = AuthStorage.defaultPassword;
-  late final AnimationController _animCtrl;
-  late final Animation<double> _fadeAnim;
-  late final Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
-    _animCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
-    _animCtrl.forward();
     _loadAuth();
   }
 
@@ -52,7 +40,6 @@ class _LoginScreenState extends State<LoginScreen>
     _passwordCtrl.dispose();
     _usernameFocus.dispose();
     _passwordFocus.dispose();
-    _animCtrl.dispose();
     super.dispose();
   }
 
@@ -68,31 +55,30 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _showAuthError() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sai tên đăng nhập hoặc mật khẩu.'),
+      SnackBar(
+        content: Text(AppLocale.t('Sai tên đăng nhập hoặc mật khẩu.')),
         behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (!_authReady) return;
+    if (!_formKey.currentState!.validate() || !_authReady) return;
+
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 450));
+
     final username = _usernameCtrl.text.trim();
     final password = _passwordCtrl.text;
     if (username != AuthStorage.defaultUsername ||
         password != _storedPassword) {
-      if (mounted) {
-        setState(() => _loading = false);
-        _showAuthError();
-      }
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _showAuthError();
       return;
     }
-    if (mounted) {
-      widget.onLogin(username);
-    }
+
+    if (mounted) widget.onLogin(username);
   }
 
   @override
@@ -102,152 +88,134 @@ class _LoginScreenState extends State<LoginScreen>
         defaultTargetPlatform == TargetPlatform.android &&
         size.width > size.height &&
         size.height < 620;
-    final isWide = size.width > 800 && !isAndroidCompactLandscape;
+    final isWide = size.width > 840 && !isAndroidCompactLandscape;
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: Row(
-        children: [
-          // Left branding panel
-          if (isWide) Expanded(flex: 5, child: _BrandingPanel()),
-          // Right login form
-          Expanded(
-            flex: isWide ? 4 : 1,
-            child: Container(
-              color: AppColors.surface,
-              child: Center(
-                child: FadeTransition(
-                  opacity: _fadeAnim,
-                  child: SlideTransition(
-                    position: _slideAnim,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 48,
-                        ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Logo + title (mobile)
-                              if (!isWide) ...[
-                                Center(
-                                  child: Container(
-                                    width: 64,
-                                    height: 64,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: const Icon(
-                                      Icons.precision_manufacturing_rounded,
-                                      color: Colors.white,
-                                      size: 36,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                              Text(
-                                'Đăng nhập hệ thống',
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.textPrimary,
-                                    ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'OHT Manual Control & Monitoring',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: AppColors.textSecondary),
-                              ),
-                              const SizedBox(height: 36),
-                              TextFormField(
-                                controller: _usernameCtrl,
-                                focusNode: _usernameFocus,
-                                autocorrect: false,
-                                enableSuggestions: false,
-                                decoration: const InputDecoration(
-                                  labelText: 'Tên đăng nhập',
-                                  prefixIcon: Icon(
-                                    Icons.person_outline_rounded,
-                                  ),
-                                ),
-                                textInputAction: TextInputAction.next,
-                                onFieldSubmitted: (_) => FocusScope.of(
-                                  context,
-                                ).requestFocus(_passwordFocus),
-                                validator: (v) =>
-                                    (v == null || v.trim().isEmpty)
-                                    ? 'Nhập tên đăng nhập'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _passwordCtrl,
-                                focusNode: _passwordFocus,
-                                obscureText: _obscure,
-                                decoration: InputDecoration(
-                                  labelText: 'Mật khẩu',
-                                  prefixIcon: const Icon(
-                                    Icons.lock_outline_rounded,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscure
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      color: AppColors.textHint,
-                                    ),
-                                    onPressed: () =>
-                                        setState(() => _obscure = !_obscure),
-                                  ),
-                                ),
-                                textInputAction: TextInputAction.done,
-                                onFieldSubmitted: (_) => _submit(),
-                              ),
-                              const SizedBox(height: 28),
-                              SizedBox(
-                                height: 50,
-                                child: FilledButton.icon(
-                                  onPressed: _loading ? null : _submit,
-                                  icon: _loading
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(Icons.login_rounded),
-                                  label: Text(
-                                    _loading ? 'Đang xác thực...' : 'Đăng nhập',
-                                    style: const TextStyle(fontSize: 15),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Center(
-                                child: Text(
-                                  'v1.3.0 — OHT Control System',
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(color: AppColors.textHint),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+      backgroundColor: AppColors.background,
+      body: isWide
+          ? Row(
+              children: [
+                Expanded(child: _BrandingPanel()),
+                Expanded(child: _LoginPane(form: _buildForm(context, isWide))),
+              ],
+            )
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 18),
+                    const _MobileBrand(),
+                    const SizedBox(height: 24),
+                    _LoginPane(form: _buildForm(context, isWide)),
+                  ],
                 ),
               ),
+            ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context, bool isWide) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocale.t('Đăng nhập hệ thống'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            AppLocale.t('Mã Terminal: VN-40'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 28),
+          _FieldLabel(AppLocale.t('MÃ NGƯỜI VẬN HÀNH')),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: _usernameCtrl,
+            focusNode: _usernameFocus,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              hintText: AppLocale.t('Nhập mã nhân viên vận hành'),
+              prefixIcon: Icon(Icons.badge_outlined),
+            ),
+            textInputAction: TextInputAction.next,
+            onFieldSubmitted: (_) =>
+                FocusScope.of(context).requestFocus(_passwordFocus),
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? AppLocale.t('Nhập tên đăng nhập')
+                : null,
+          ),
+          const SizedBox(height: 16),
+          _FieldLabel(AppLocale.t('MÃ KHÓA BẢO MẬT')),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: _passwordCtrl,
+            focusNode: _passwordFocus,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              hintText: AppLocale.t('Nhập mật khẩu'),
+              prefixIcon: Icon(Icons.lock_outline_rounded),
+              suffixIcon: IconButton(
+                tooltip: _obscure
+                    ? AppLocale.t('Hiện mật khẩu')
+                    : AppLocale.t('Ẩn mật khẩu'),
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: AppColors.textHint,
+                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _submit(),
+            validator: (value) => (value == null || value.isEmpty)
+                ? AppLocale.t('Nhập mật khẩu')
+                : null,
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              key: const Key('login_submit_button'),
+              onPressed: _loading ? null : _submit,
+              icon: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(Icons.arrow_forward_rounded, size: 18),
+              label: Text(
+                AppLocale.t(
+                  _loading ? 'ĐANG XÁC THỰC...' : 'XÁC THỰC VÀ ĐĂNG NHẬP',
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'v2.4.1 (${AppLocale.t('Ổn định')})',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textHint,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -256,114 +224,80 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
-class _BrandingPanel extends StatelessWidget {
+class _LoginPane extends StatelessWidget {
+  const _LoginPane({required this.form});
+
+  final Widget form;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryDark,
-            AppColors.primary,
-            AppColors.primaryLight,
-          ],
-          stops: [0.0, 0.5, 1.0],
+      color: AppColors.surface,
+      alignment: Alignment.center,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: form,
         ),
       ),
+    );
+  }
+}
+
+class _BrandingPanel extends StatelessWidget {
+  const _BrandingPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.primary,
       child: Stack(
         children: [
-          // Background pattern
           Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-          // Content
           Padding(
-            padding: const EdgeInsets.all(48),
+            padding: const EdgeInsets.all(72),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.precision_manufacturing_rounded,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'OHT Control',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        Text(
-                          'Overhead Hoist Transport',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                const Text(
-                  'Hệ thống điều khiển\nOHT thông minh',
+                _BrandIcon(size: 64),
+                SizedBox(height: 28),
+                Text(
+                  AppLocale.t('Hệ Thống Điều khiển\nOHT'),
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 36,
+                    fontSize: 34,
                     fontWeight: FontWeight.w900,
-                    height: 1.2,
+                    height: 1.14,
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Điều khiển, giám sát và chẩn đoán toàn bộ hệ thống\ntruyền động OHT theo thời gian thực.',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
-                    height: 1.6,
+                SizedBox(height: 20),
+                SizedBox(
+                  width: 430,
+                  child: Text(
+                    AppLocale.t(
+                      'Hệ thống vận chuyển tự động Overhead Hoist Transport trong nhà máy sản xuất, hỗ trợ vận hành thủ công và giám sát an toàn theo thời gian thực.',
+                    ),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.65,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 40),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: const [
-                    _FeatureChip(
-                      icon: Icons.speed_rounded,
-                      label: 'Thời gian thực',
-                    ),
-                    _FeatureChip(
-                      icon: Icons.shield_rounded,
-                      label: 'An toàn E-Stop',
-                    ),
-                    _FeatureChip(
-                      icon: Icons.analytics_rounded,
-                      label: 'Giám sát IO',
-                    ),
-                    _FeatureChip(
-                      icon: Icons.history_rounded,
-                      label: 'Lưu log lỗi',
-                    ),
-                  ],
+                Spacer(),
+                _BuildBadge(
+                  icon: Icons.verified_outlined,
+                  label: AppLocale.t('PHIÊN BẢN'),
+                  value: '2.4.1 (${AppLocale.t('Ổn định')})',
                 ),
-                const SizedBox(height: 48),
+                SizedBox(height: 12),
+                _BuildBadge(
+                  icon: Icons.update_rounded,
+                  label: AppLocale.t('PHIÊN BẢN'),
+                  value: '2.4.1 (${AppLocale.t('Ổn định')})',
+                ),
               ],
             ),
           ),
@@ -373,34 +307,123 @@ class _BrandingPanel extends StatelessWidget {
   }
 }
 
-class _FeatureChip extends StatelessWidget {
-  const _FeatureChip({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
+class _MobileBrand extends StatelessWidget {
+  const _MobileBrand();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _BrandIcon(size: 54),
+        SizedBox(height: 12),
+        Text(
+          'OHT CONTROL SYSTEM',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BrandIcon extends StatelessWidget {
+  const _BrandIcon({required this.size});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+      ),
+      child: Icon(
+        Icons.precision_manufacturing_rounded,
+        color: Colors.white,
+        size: size * 0.55,
+      ),
+    );
+  }
+}
+
+class _BuildBadge extends StatelessWidget {
+  const _BuildBadge({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF004174).withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 16),
+          Icon(icon, color: Colors.white70, size: 16),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
       ),
     );
   }
@@ -410,10 +433,10 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
+      ..color = Colors.white.withValues(alpha: 0.045)
       ..strokeWidth = 1;
 
-    const step = 48.0;
+    const step = 56.0;
     for (double x = 0; x < size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
