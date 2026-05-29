@@ -122,9 +122,10 @@ void main() {
   Future<void> pumpAndroidApp(
     WidgetTester tester, {
     Map<String, Object> preferences = const {},
+    Size physicalSize = const Size(800, 360),
   }) async {
     SharedPreferences.setMockInitialValues(preferences);
-    tester.view.physicalSize = const Size(800, 360);
+    tester.view.physicalSize = physicalSize;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -174,6 +175,40 @@ void main() {
     expect(find.text('OFFLINE'), findsWidgets);
     expect(find.text('Thaco'), findsOneWidget);
     expect(find.text('Đăng xuất'), findsOneWidget);
+  });
+
+  testWidgets(
+    'android viewport matches tablet aspect ratio without letterbox',
+    (WidgetTester tester) async {
+      await pumpAndroidApp(tester, physicalSize: const Size(1280, 800));
+
+      expect(find.byKey(const Key('android_windows_viewport')), findsOneWidget);
+      expect(find.byKey(const Key('android_windows_canvas')), findsOneWidget);
+      expect(
+        tester.getSize(find.byKey(const Key('android_windows_canvas'))),
+        const Size(1920, 1200),
+      );
+    },
+  );
+
+  testWidgets('android tablet manual controls fill the panel height', (
+    WidgetTester tester,
+  ) async {
+    await pumpAndroidApp(tester, physicalSize: const Size(1280, 800));
+    await login(tester);
+
+    await tester.tap(find.text('Chế độ Mock (Demo)'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final downRect = tester.getRect(
+      find.byKey(const Key('dashboard_control_down')),
+    );
+    final clearErrorRect = tester.getRect(
+      find.byKey(const Key('dashboard_clear_error_button')),
+    );
+
+    expect(clearErrorRect.top - downRect.bottom, lessThanOrEqualTo(18));
   });
 
   testWidgets('top bar brand reserves enough width for the product name', (

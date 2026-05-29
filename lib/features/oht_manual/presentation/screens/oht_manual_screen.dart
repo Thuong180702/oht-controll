@@ -425,7 +425,7 @@ class _ClassicDashboardManualPanel extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final buttonHeight = ((constraints.maxHeight - 36) / 4)
-                    .clamp(52.0, 180.0)
+                    .clamp(52.0, constraints.maxHeight)
                     .toDouble();
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

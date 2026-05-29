@@ -173,6 +173,7 @@ class _AndroidWindowsViewport extends StatelessWidget {
     }
 
     final media = MediaQuery.of(context);
+    final canvasSize = _resolveCanvasSize(media.size);
     return ColoredBox(
       key: const Key('android_windows_viewport'),
       color: AppColors.background,
@@ -181,11 +182,12 @@ class _AndroidWindowsViewport extends StatelessWidget {
           fit: BoxFit.contain,
           alignment: Alignment.center,
           child: SizedBox(
-            width: _designSize.width,
-            height: _designSize.height,
+            key: const Key('android_windows_canvas'),
+            width: canvasSize.width,
+            height: canvasSize.height,
             child: MediaQuery(
               data: media.copyWith(
-                size: _designSize,
+                size: canvasSize,
                 padding: EdgeInsets.zero,
                 viewPadding: EdgeInsets.zero,
                 textScaler: TextScaler.noScaling,
@@ -196,5 +198,19 @@ class _AndroidWindowsViewport extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Size _resolveCanvasSize(Size screenSize) {
+    if (screenSize.width <= 0 || screenSize.height <= 0) {
+      return _designSize;
+    }
+
+    final screenAspect = screenSize.width / screenSize.height;
+    final designAspect = _designSize.width / _designSize.height;
+    if (screenAspect < designAspect) {
+      return Size(_designSize.width, _designSize.width / screenAspect);
+    }
+
+    return Size(_designSize.height * screenAspect, _designSize.height);
   }
 }
