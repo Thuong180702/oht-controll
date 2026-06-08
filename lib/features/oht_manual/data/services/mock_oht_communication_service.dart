@@ -468,6 +468,8 @@ class MockOhtCommunicationService implements OhtCommunicationService {
       case ManualCommandType.hoistStop:
         motors[MotorIds.hoistFront] = _stoppedMotor(MotorIds.hoistFront);
         motors[MotorIds.hoistRear] = _stoppedMotor(MotorIds.hoistRear);
+      case ManualCommandType.heartbeat:
+        break;
     }
 
     _telemetry = _telemetry.copyWith(

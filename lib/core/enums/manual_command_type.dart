@@ -18,7 +18,8 @@ enum ManualCommandType {
   hoistRearDown('hoist_rear_down'),
   hoistStop('hoist_stop'),
   resetError('reset_error'),
-  emergencyStop('emergency_stop');
+  emergencyStop('emergency_stop'),
+  heartbeat('heartbeat');
 
   const ManualCommandType(this.wireName);
 

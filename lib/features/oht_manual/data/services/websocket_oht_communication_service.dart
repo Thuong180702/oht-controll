@@ -129,8 +129,12 @@ class WebSocketOhtCommunicationService implements OhtCommunicationService {
       }
 
       switch (OhtMessageType.fromWire(decoded['type'] as String?)) {
+        case OhtMessageType.state:
+          _telemetryController.add(OhtTelemetry.fromFirmwareState(decoded));
         case OhtMessageType.telemetry:
           _telemetryController.add(OhtTelemetry.fromJson(decoded));
+        case OhtMessageType.manualAck:
+          _handleManualAck(decoded);
         case OhtMessageType.ack:
           _eventController.add(
             AlarmEvent.now(
@@ -170,6 +174,29 @@ class WebSocketOhtCommunicationService implements OhtCommunicationService {
         ),
       );
     }
+  }
+
+  void _handleManualAck(Map<String, dynamic> decoded) {
+    final status = decoded['status']?.toString() ?? '';
+    final action = decoded['action']?.toString() ?? '';
+    final requestId = decoded['request_id']?.toString() ?? '';
+    final reason = decoded['reason']?.toString() ?? '';
+    final message = decoded['message']?.toString() ?? '';
+    final accepted = status == 'queued' || status == 'executed';
+    final details = <String>[
+      accepted ? 'ACK' : 'NACK',
+      if (action.isNotEmpty) action,
+      if (requestId.isNotEmpty) requestId,
+      if (reason.isNotEmpty) reason,
+      if (message.isNotEmpty && message != reason) message,
+    ].join(' ');
+
+    _eventController.add(
+      AlarmEvent.now(
+        severity: accepted ? EventSeverity.ack : EventSeverity.nack,
+        message: details.isEmpty ? 'Manual command acknowledgement' : details,
+      ),
+    );
   }
 
   void _handleSocketError(Object error) {

@@ -24,6 +24,8 @@ import '../../domain/repositories/oht_communication_service.dart';
 /// no rebuild is ever triggered from inside a stream callback or during
 /// Flutter's layout/paint phase.
 class OhtManualController {
+  static const Duration _deadmanHeartbeatPeriod = Duration(milliseconds: 250);
+
   OhtManualController({OhtCommunicationService? service}) {
     _service = service ?? MockOhtCommunicationService();
     _connectionStatus =
@@ -48,6 +50,8 @@ class OhtManualController {
   StreamSubscription<ConnectionStatus>? _statusSubscription;
   StreamSubscription<AlarmEvent>? _eventSubscription;
   Timer? _watchdog;
+  Timer? _deadmanHeartbeatTimer;
+  bool _deadmanHeartbeatInFlight = false;
 
   OhtTelemetry _telemetry = MockOhtData.initialTelemetry();
   late ConnectionStatus _connectionStatus;
@@ -167,6 +171,7 @@ class OhtManualController {
   }
 
   Future<void> disconnect() async {
+    _stopDeadmanHeartbeat();
     await _service.disconnect();
     _lastTelemetryAt = null;
   }
@@ -230,6 +235,10 @@ class OhtManualController {
       timestamp: DateTime.now(),
     );
 
+    if (_stopsDeadmanHeartbeat(type)) {
+      _stopDeadmanHeartbeat();
+    }
+
     if (type == ManualCommandType.emergencyStop) {
       _emergencyLatched = true;
       _bump();
@@ -249,7 +258,13 @@ class OhtManualController {
 
     try {
       await _service.sendCommand(command);
+      if (_startsDeadmanHeartbeat(type)) {
+        _startDeadmanHeartbeat();
+      }
     } catch (error) {
+      if (_startsDeadmanHeartbeat(type)) {
+        _stopDeadmanHeartbeat();
+      }
       _addEvent(
         AlarmEvent.now(
           severity: EventSeverity.critical,
@@ -371,6 +386,7 @@ class OhtManualController {
     if (_disposed) return;
     _disposed = true;
     _watchdog?.cancel();
+    _stopDeadmanHeartbeat();
     _telemetrySubscription?.cancel();
     _statusSubscription?.cancel();
     _eventSubscription?.cancel();
@@ -391,6 +407,7 @@ class OhtManualController {
   }
 
   void _replaceService(OhtCommunicationService nextService) {
+    _stopDeadmanHeartbeat();
     _telemetrySubscription?.cancel();
     _statusSubscription?.cancel();
     _eventSubscription?.cancel();
@@ -408,6 +425,9 @@ class OhtManualController {
       _lastTelemetryAt = DateTime.now();
       _telemetry = telemetry;
       _emergencyLatched = telemetry.emergencyStop;
+      if (telemetry.emergencyStop || telemetry.hasCriticalError) {
+        _stopDeadmanHeartbeat();
+      }
       if (_connectionStatus.phase == ConnectionPhase.timeout &&
           _service.status.isConnected) {
         _connectionStatus = _service.status.copyWith(
@@ -430,6 +450,7 @@ class OhtManualController {
       _connectionStatus = status;
       if (status.phase != ConnectionPhase.connected) {
         _lastTelemetryAt = null;
+        _stopDeadmanHeartbeat();
       }
       if (status.phase == ConnectionPhase.error ||
           status.phase == ConnectionPhase.disconnected) {
@@ -465,6 +486,7 @@ class OhtManualController {
       message: 'Telemetry timeout > 2 seconds',
       changedAt: DateTime.now(),
     );
+    _stopDeadmanHeartbeat();
     _addEvent(
       AlarmEvent.now(
         severity: EventSeverity.critical,
@@ -619,6 +641,111 @@ class OhtManualController {
     return 'cmd_${_requestCounter.toString().padLeft(4, '0')}';
   }
 
+  void _startDeadmanHeartbeat() {
+    if (_service is MockOhtCommunicationService || !isConnected) {
+      return;
+    }
+    _deadmanHeartbeatTimer?.cancel();
+    _deadmanHeartbeatTimer = Timer.periodic(_deadmanHeartbeatPeriod, (_) {
+      unawaited(_sendDeadmanHeartbeat());
+    });
+  }
+
+  void _stopDeadmanHeartbeat() {
+    _deadmanHeartbeatTimer?.cancel();
+    _deadmanHeartbeatTimer = null;
+    _deadmanHeartbeatInFlight = false;
+  }
+
+  Future<void> _sendDeadmanHeartbeat() async {
+    if (_deadmanHeartbeatInFlight) {
+      return;
+    }
+    if (!isConnected || _service is MockOhtCommunicationService) {
+      _stopDeadmanHeartbeat();
+      return;
+    }
+
+    _deadmanHeartbeatInFlight = true;
+    try {
+      await _service.sendCommand(
+        ManualCommand(
+          type: ManualCommandType.heartbeat,
+          target: 'system',
+          speed: 0,
+          requestId: _nextRequestId(),
+          timestamp: DateTime.now(),
+        ),
+      );
+    } catch (error) {
+      _stopDeadmanHeartbeat();
+      _addEvent(
+        AlarmEvent.now(
+          severity: EventSeverity.warning,
+          message: 'Deadman heartbeat failed: $error',
+        ),
+      );
+    } finally {
+      _deadmanHeartbeatInFlight = false;
+    }
+  }
+
+  bool _startsDeadmanHeartbeat(ManualCommandType type) {
+    switch (type) {
+      case ManualCommandType.travelForward:
+      case ManualCommandType.travelBackward:
+      case ManualCommandType.travelFrontForward:
+      case ManualCommandType.travelFrontBackward:
+      case ManualCommandType.travelRearForward:
+      case ManualCommandType.travelRearBackward:
+      case ManualCommandType.steerFrontLeft:
+      case ManualCommandType.steerFrontRight:
+      case ManualCommandType.steerRearLeft:
+      case ManualCommandType.steerRearRight:
+      case ManualCommandType.hoistFrontUp:
+      case ManualCommandType.hoistFrontDown:
+      case ManualCommandType.hoistRearUp:
+      case ManualCommandType.hoistRearDown:
+        return true;
+      case ManualCommandType.setManualMode:
+      case ManualCommandType.travelStop:
+      case ManualCommandType.steerStop:
+      case ManualCommandType.hoistStop:
+      case ManualCommandType.resetError:
+      case ManualCommandType.emergencyStop:
+      case ManualCommandType.heartbeat:
+        return false;
+    }
+  }
+
+  bool _stopsDeadmanHeartbeat(ManualCommandType type) {
+    switch (type) {
+      case ManualCommandType.travelStop:
+      case ManualCommandType.steerStop:
+      case ManualCommandType.hoistStop:
+      case ManualCommandType.resetError:
+      case ManualCommandType.emergencyStop:
+        return true;
+      case ManualCommandType.setManualMode:
+      case ManualCommandType.travelForward:
+      case ManualCommandType.travelBackward:
+      case ManualCommandType.travelFrontForward:
+      case ManualCommandType.travelFrontBackward:
+      case ManualCommandType.travelRearForward:
+      case ManualCommandType.travelRearBackward:
+      case ManualCommandType.steerFrontLeft:
+      case ManualCommandType.steerFrontRight:
+      case ManualCommandType.steerRearLeft:
+      case ManualCommandType.steerRearRight:
+      case ManualCommandType.hoistFrontUp:
+      case ManualCommandType.hoistFrontDown:
+      case ManualCommandType.hoistRearUp:
+      case ManualCommandType.hoistRearDown:
+      case ManualCommandType.heartbeat:
+        return false;
+    }
+  }
+
   int _speedFor(ManualCommandType type, {int? speedOverride}) {
     final overriddenSpeed = speedOverride?.clamp(0, 100).toInt();
     switch (type) {
@@ -628,6 +755,7 @@ class OhtManualController {
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
       case ManualCommandType.setManualMode:
+      case ManualCommandType.heartbeat:
         return 0;
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
@@ -674,6 +802,7 @@ class OhtManualController {
       case ManualCommandType.setManualMode:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
+      case ManualCommandType.heartbeat:
         return 'system';
     }
   }
