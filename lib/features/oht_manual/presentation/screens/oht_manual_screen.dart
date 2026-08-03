@@ -30,6 +30,7 @@ class OhtManualScreen extends StatefulWidget {
     required this.onThemeModeChanged,
     required this.onTopNavSelected,
     required this.onDisconnect,
+    required this.onLogout,
     super.key,
   });
   final OhtManualController controller;
@@ -41,6 +42,7 @@ class OhtManualScreen extends StatefulWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final ValueChanged<IndustrialTopBarItem> onTopNavSelected;
   final Future<void> Function() onDisconnect;
+  final Future<void> Function() onLogout;
   @override
   State<OhtManualScreen> createState() => _OhtManualScreenState();
 }
@@ -125,10 +127,18 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
               },
               onUserTap: _showChangePasswordPanel,
               onExit: () {
-                widget.onDisconnect();
+                if (ctrl.isConnected) {
+                  widget.onDisconnect();
+                } else {
+                  widget.onLogout();
+                }
               },
-              exitLabel: AppLocale.t('Ngắt kết nối'),
-              exitIcon: Icons.link_off_rounded,
+              exitLabel: ctrl.isConnected
+                  ? AppLocale.t('Ngắt kết nối')
+                  : AppLocale.t('Đăng xuất'),
+              exitIcon: ctrl.isConnected
+                  ? Icons.link_off_rounded
+                  : Icons.logout_rounded,
             ),
             // ─── Body ───
             Expanded(
@@ -150,6 +160,7 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
                   onThemeModeChanged: widget.onThemeModeChanged,
                   onChangePassword: _showChangePasswordPanel,
                   onDisconnect: widget.onDisconnect,
+                  onLogout: widget.onLogout,
                 ),
                 IndustrialTopBarItem.connection => const SizedBox.shrink(),
               },
@@ -2824,6 +2835,7 @@ class _SettingsPanel extends StatelessWidget {
     required this.onThemeModeChanged,
     required this.onChangePassword,
     required this.onDisconnect,
+    required this.onLogout,
   });
 
   final OhtManualController controller;
@@ -2834,6 +2846,7 @@ class _SettingsPanel extends StatelessWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback onChangePassword;
   final Future<void> Function() onDisconnect;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -2859,6 +2872,7 @@ class _SettingsPanel extends StatelessWidget {
               onThemeModeChanged: onThemeModeChanged,
               onChangePassword: onChangePassword,
               onDisconnect: onDisconnect,
+              onLogout: onLogout,
             ),
           ),
         ],
@@ -2877,6 +2891,7 @@ class _SettingsCardGrid extends StatelessWidget {
     required this.onThemeModeChanged,
     required this.onChangePassword,
     required this.onDisconnect,
+    required this.onLogout,
   });
 
   final OhtManualController controller;
@@ -2887,6 +2902,7 @@ class _SettingsCardGrid extends StatelessWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback onChangePassword;
   final Future<void> Function() onDisconnect;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -3086,13 +3102,16 @@ class _SettingsCardGrid extends StatelessWidget {
   }
 
   Widget _buildSessionCard() {
+    final isConnected = controller.isConnected;
     return _SettingsCard(
       key: const Key('settings_session_panel'),
       title: AppLocale.t('Phiên làm việc'),
-      icon: Icons.link_off_rounded,
+      icon: isConnected ? Icons.link_off_rounded : Icons.logout_rounded,
       children: [
         Text(
-          AppLocale.t('Ngắt kết nối để quay lại màn cấu hình giao thức.'),
+          isConnected
+              ? AppLocale.t('Ngắt kết nối để quay lại màn cấu hình giao thức.')
+              : AppLocale.t('Đăng xuất khỏi tài khoản hệ thống.'),
           style: TextStyle(
             color: AppColors.textSecondary,
             fontSize: 12,
@@ -3103,9 +3122,16 @@ class _SettingsCardGrid extends StatelessWidget {
         Align(
           alignment: Alignment.centerLeft,
           child: OutlinedButton.icon(
-            onPressed: onDisconnect,
-            icon: Icon(Icons.link_off_rounded, size: 16),
-            label: Text(AppLocale.t('Ngắt kết nối')),
+            onPressed: isConnected ? onDisconnect : onLogout,
+            icon: Icon(
+              isConnected ? Icons.link_off_rounded : Icons.logout_rounded,
+              size: 16,
+            ),
+            label: Text(
+              isConnected
+                  ? AppLocale.t('Ngắt kết nối')
+                  : AppLocale.t('Đăng xuất'),
+            ),
           ),
         ),
       ],

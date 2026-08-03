@@ -158,6 +158,7 @@ class _OhtManualAppState extends State<OhtManualApp> {
           onThemeModeChanged: _setThemeMode,
           onTopNavSelected: _onTopNavSelected,
           onDisconnect: _onDisconnect,
+          onLogout: _onLogout,
         );
     }
   }

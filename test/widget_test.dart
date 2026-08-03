@@ -544,6 +544,7 @@ void main() {
           onThemeModeChanged: (_) {},
           onTopNavSelected: (_) {},
           onDisconnect: () async {},
+          onLogout: () async {},
         ),
       ),
     );
@@ -700,6 +701,7 @@ void main() {
           onThemeModeChanged: (_) {},
           onTopNavSelected: (_) {},
           onDisconnect: () async {},
+          onLogout: () async {},
         ),
       ),
     );
