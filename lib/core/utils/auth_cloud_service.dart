@@ -10,7 +10,7 @@ class AuthCloudService {
   static const String _defaultEndpoint =
       'https://robot-controller-remote.pages.dev/api/auth/password';
 
-  /// Synchronize password from Cloudflare KV in the background.
+  /// Synchronize password from Cloudflare KV.
   static Future<String?> fetchRemotePassword({String username = 'Thaco'}) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -23,7 +23,8 @@ class AuthCloudService {
               'Pragma': 'no-cache',
             },
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 3));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         if (data['success'] == true && data['password'] != null) {
@@ -35,13 +36,13 @@ class AuthCloudService {
         }
       }
     } catch (e) {
-      debugPrint('[AuthCloudService] Remote fetch notice: $e');
+      debugPrint('[AuthCloudService] Remote fetch offline/notice: $e');
     }
     return null;
   }
 
-  /// Push updated password to Cloudflare KV.
-  static Future<bool> pushRemotePassword({
+  /// Push updated password to Cloudflare KV. Requires online connection.
+  static Future<({bool success, String message})> pushRemotePassword({
     required String username,
     required String oldPassword,
     required String newPassword,
@@ -60,18 +61,28 @@ class AuthCloudService {
             headers: {'Content-Type': 'application/json'},
             body: payload,
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 4));
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['success'] == true) {
-          await SessionStorage.setItem('admin_password', newPassword);
-          return true;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200 && data['success'] == true) {
+        await SessionStorage.setItem('admin_password', newPassword);
+        return (
+          success: true,
+          message: 'Đã cập nhật và đồng bộ mật khẩu lên hệ thống.',
+        );
+      } else {
+        final msg = data['message'] as String? ?? 'Không thể đổi mật khẩu.';
+        if (msg.contains('Old password')) {
+          return (success: false, message: 'Mật khẩu cũ không chính xác.');
         }
+        return (success: false, message: msg);
       }
     } catch (e) {
-      debugPrint('[AuthCloudService] Remote push notice: $e');
+      debugPrint('[AuthCloudService] Remote push error: $e');
+      return (
+        success: false,
+        message: 'Vui lòng kết nối mạng để đổi mật khẩu và đồng bộ hệ thống.',
+      );
     }
-    return false;
   }
 }

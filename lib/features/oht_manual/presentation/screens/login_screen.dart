@@ -67,9 +67,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final username = _usernameCtrl.text.trim();
     final password = _passwordCtrl.text;
-    final storedPassword = await AuthStorage.getPassword();
+    final validPassword = await AuthStorage.getPasswordForLogin();
     if (username != AuthStorage.defaultUsername ||
-        password != storedPassword) {
+        password != validPassword) {
       if (!mounted) return;
       setState(() => _loading = false);
       _showAuthError();

@@ -6,28 +6,36 @@ class AuthStorage {
   static const defaultPassword = 'Thaco@1234';
   static const _passwordKey = 'admin_password';
 
-  /// Seeds local password and triggers background Cloudflare KV sync.
+  /// Seeds local password and background syncs with Cloudflare KV.
   static Future<void> ensureSeeded() async {
     final existing = SessionStorage.getItem(_passwordKey);
     if (existing == null || existing.isEmpty) {
       await SessionStorage.setItem(_passwordKey, defaultPassword);
     }
-    // Background sync with Cloudflare KV (non-blocking)
+    // Background sync with Cloudflare KV
     AuthCloudService.fetchRemotePassword(username: defaultUsername);
   }
 
-  /// Returns stored password instantly, while syncing with Cloudflare KV in background.
-  static Future<String> getPassword() async {
+  /// 1. Online: Fetch live password from Cloudflare KV & update local cache.
+  /// 2. Offline: Fallback to local stored password.
+  static Future<String> getPasswordForLogin() async {
+    final remotePassword =
+        await AuthCloudService.fetchRemotePassword(username: defaultUsername);
+    if (remotePassword != null && remotePassword.isNotEmpty) {
+      await SessionStorage.setItem(_passwordKey, remotePassword);
+      return remotePassword;
+    }
+
     final stored = SessionStorage.getItem(_passwordKey);
-    // Background refresh from Cloudflare KV
-    AuthCloudService.fetchRemotePassword(username: defaultUsername);
     if (stored != null && stored.isNotEmpty) {
       return stored;
     }
     return defaultPassword;
   }
 
-  /// Synchronous instant password getter for UI widgets
+  static Future<String> getPassword() => getPasswordForLogin();
+
+  /// Synchronous instant password getter for offline display/cache
   static String getPasswordSync() {
     final stored = SessionStorage.getItem(_passwordKey);
     if (stored != null && stored.isNotEmpty) {
@@ -36,17 +44,20 @@ class AuthStorage {
     return defaultPassword;
   }
 
-  static Future<bool> setPassword(String newPassword, {String? oldPassword}) async {
-    final currentLocal = SessionStorage.getItem(_passwordKey) ?? defaultPassword;
-    // 1. Save to local storage INSTANTLY so UI never freezes
-    await SessionStorage.setItem(_passwordKey, newPassword);
-
-    // 2. Push to Cloudflare KV in background so all other devices sync
-    AuthCloudService.pushRemotePassword(
+  /// Change password: Requires online connection to sync with Cloudflare KV.
+  static Future<({bool success, String message})> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    final result = await AuthCloudService.pushRemotePassword(
       username: defaultUsername,
-      oldPassword: oldPassword ?? currentLocal,
+      oldPassword: oldPassword,
       newPassword: newPassword,
     );
-    return true;
+
+    if (result.success) {
+      await SessionStorage.setItem(_passwordKey, newPassword);
+    }
+    return result;
   }
 }

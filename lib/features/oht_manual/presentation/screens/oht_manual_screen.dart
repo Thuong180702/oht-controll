@@ -3691,17 +3691,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
   final _newCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _saving = false;
-  bool _ready = false;
   String? _errorText;
-  String _currentPassword = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _currentPassword = AuthStorage.getPasswordSync();
-    _ready = true;
-    _loadCurrentPassword();
-  }
 
   @override
   void dispose() {
@@ -3711,34 +3701,18 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     super.dispose();
   }
 
-  Future<void> _loadCurrentPassword() async {
-    final pwd = await AuthStorage.getPassword();
-    if (!mounted) return;
-    setState(() {
-      _currentPassword = pwd;
-    });
-  }
-
   void _setError(String message) {
     setState(() => _errorText = message);
   }
 
   Future<void> _save() async {
     if (_saving) return;
-    if (!_ready) {
-      _setError(AppLocale.t('Đang tải dữ liệu, vui lòng thử lại.'));
-      return;
-    }
     final oldPwd = _oldCtrl.text;
     final newPwd = _newCtrl.text;
     final confirmPwd = _confirmCtrl.text;
 
     if (oldPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
       _setError(AppLocale.t('Vui lòng nhập đầy đủ các trường.'));
-      return;
-    }
-    if (oldPwd != _currentPassword) {
-      _setError(AppLocale.t('Mật khẩu cũ không đúng.'));
       return;
     }
     if (newPwd != confirmPwd) {
@@ -3750,14 +3724,26 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       _saving = true;
       _errorText = null;
     });
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    await AuthStorage.setPassword(newPwd, oldPassword: oldPwd);
+
+    final result = await AuthStorage.changePassword(
+      oldPassword: oldPwd,
+      newPassword: newPwd,
+    );
+
     if (!mounted) return;
-    navigator.pop();
-    messenger.showSnackBar(
+
+    if (!result.success) {
+      setState(() {
+        _saving = false;
+        _errorText = result.message;
+      });
+      return;
+    }
+
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocale.t('Đã cập nhật mật khẩu.')),
+        content: Text(result.message),
         behavior: SnackBarBehavior.floating,
       ),
     );
