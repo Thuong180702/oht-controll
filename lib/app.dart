@@ -1,5 +1,4 @@
-import 'dart:io' show Platform;
-
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
@@ -29,12 +28,29 @@ class _OhtManualAppState extends State<OhtManualApp> {
   String _username = '';
   String _languageCode = AppPreferences.defaultLanguageCode;
   ThemeMode _themeMode = AppPreferences.defaultThemeMode;
+  bool _prefsLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _controller = OhtManualController();
-    _loadPreferences();
+
+    // Instant synchronous read of session from localStorage
+    final savedUser = AppPreferences.getLoggedInUser();
+    final savedScreen = AppPreferences.getSavedScreen();
+    if (savedUser != null && savedUser.trim().isNotEmpty) {
+      _username = savedUser.trim();
+      if (savedScreen == 'main') {
+        _screen = _AppScreen.main;
+      } else {
+        _screen = _AppScreen.connection;
+      }
+    } else {
+      _screen = _AppScreen.login;
+    }
+    _prefsLoaded = true;
+
+    _loadAsyncPreferences();
   }
 
   @override
@@ -43,46 +59,56 @@ class _OhtManualAppState extends State<OhtManualApp> {
     super.dispose();
   }
 
-  void _onLogin(String username) {
+  Future<void> _onLogin(String username) async {
     setState(() {
       _username = username;
       _screen = _AppScreen.connection;
     });
+    await AppPreferences.setLoggedInUser(username);
+    await AppPreferences.setSavedScreen('connection');
   }
 
-  void _onConnected() => setState(() {
-    _screen = _AppScreen.main;
-    _activeMainTab = IndustrialTopBarItem.dashboard;
-  });
+  Future<void> _onConnected() async {
+    setState(() {
+      _screen = _AppScreen.main;
+      _activeMainTab = IndustrialTopBarItem.dashboard;
+    });
+    await AppPreferences.setSavedScreen('main');
+  }
 
   Future<void> _onDisconnect() async {
     await _controller.disconnect();
     setState(() => _screen = _AppScreen.connection);
+    await AppPreferences.setSavedScreen('connection');
   }
 
-  void _onLogout() {
-    _controller.disconnect();
+  Future<void> _onLogout() async {
+    await _controller.disconnect();
     setState(() {
       _username = '';
       _screen = _AppScreen.login;
     });
+    await AppPreferences.clearSession();
   }
 
-  void _onTopNavSelected(IndustrialTopBarItem item) {
+  Future<void> _onTopNavSelected(IndustrialTopBarItem item) async {
     if (_screen == _AppScreen.login) return;
+    if (item == IndustrialTopBarItem.connection) {
+      setState(() => _screen = _AppScreen.connection);
+      await AppPreferences.setSavedScreen('connection');
+      return;
+    }
     setState(() {
-      if (item == IndustrialTopBarItem.connection) {
-        _screen = _AppScreen.connection;
-        return;
-      }
       _screen = _AppScreen.main;
       _activeMainTab = item;
     });
+    await AppPreferences.setSavedScreen('main');
   }
 
-  Future<void> _loadPreferences() async {
+  Future<void> _loadAsyncPreferences() async {
     final languageCode = await AppPreferences.getLanguageCode();
     final themeMode = await AppPreferences.getThemeMode();
+
     if (!mounted) return;
     setState(() {
       _languageCode = languageCode;
@@ -105,10 +131,10 @@ class _OhtManualAppState extends State<OhtManualApp> {
   }
 
   Widget _buildScreen() {
-    // Do NOT wrap in AnimatedBuilder here — OhtManualScreen manages its own
-    // AnimatedBuilder internally.  Wrapping at this level would cause the root
-    // to recreate the entire screen on every telemetry tick, invalidating
-    // descendant BuildContexts and triggering the "ancestor == this" assertion.
+    if (!_prefsLoaded) {
+      return const ColoredBox(color: Color(0xFF07111F));
+    }
+
     switch (_screen) {
       case _AppScreen.login:
         return LoginScreen(onLogin: _onLogin);
@@ -149,7 +175,8 @@ class _OhtManualAppState extends State<OhtManualApp> {
       locale: Locale(_languageCode),
       builder: (context, child) {
         return _AndroidWindowsViewport(
-          enabled: widget.forceAndroidViewport ?? Platform.isAndroid,
+          enabled: widget.forceAndroidViewport ??
+              (!kIsWeb && defaultTargetPlatform == TargetPlatform.android),
           child: child ?? const SizedBox.shrink(),
         );
       },

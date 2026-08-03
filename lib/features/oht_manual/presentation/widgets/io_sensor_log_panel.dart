@@ -785,11 +785,11 @@ Future<void> _downloadEventsAsExcel(
   OhtManualController controller,
 ) async {
   try {
-    final file = await EventLogExcelExporter.export(controller.events);
+    final result = await EventLogExcelExporter.export(controller.events);
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Đã tải log Excel: ${file.path}')));
+    ).showSnackBar(SnackBar(content: Text('Đã tải log Excel: $result')));
   } catch (error) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(

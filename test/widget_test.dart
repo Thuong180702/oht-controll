@@ -21,6 +21,7 @@ import 'package:flutter_application_1/features/oht_manual/domain/repositories/oh
 import 'package:flutter_application_1/features/oht_manual/presentation/controllers/oht_manual_controller.dart';
 import 'package:flutter_application_1/features/oht_manual/presentation/screens/oht_manual_screen.dart';
 import 'package:flutter_application_1/features/oht_manual/presentation/widgets/industrial_top_bar.dart';
+import 'package:flutter_application_1/features/oht_manual/presentation/widgets/motor_display_formatters.dart';
 
 void main() {
   test('manual commands accept an advanced motor speed override', () async {
@@ -34,14 +35,14 @@ void main() {
     expect(controller.isConnected, isTrue);
 
     await controller.sendManualCommand(
-      ManualCommandType.travelFrontForward,
+      ManualCommandType.travelForward,
       speedOverride: 72,
     );
 
     expect(
       controller.events.any(
         (event) =>
-            event.message.contains('Sent travel_front_forward') &&
+            event.message.contains('Sent travel_forward') &&
             event.message.contains('speed=72%'),
       ),
       isTrue,
@@ -58,7 +59,7 @@ void main() {
     }
 
     await controller.sendManualCommand(
-      ManualCommandType.travelFrontForward,
+      ManualCommandType.travelForward,
       speedOverride: 72,
     );
     await Future<void>.delayed(const Duration(milliseconds: 550));
@@ -68,8 +69,11 @@ void main() {
     expect(travelFront.velocityMps, closeTo(0.72, 0.01));
     expect(travelFront.positionM, greaterThan(0));
 
+    final travelRear = controller.telemetry.motors[MotorIds.travelRear]!;
+    expect(travelRear.state, MotorState.running);
+
     await controller.sendManualCommand(
-      ManualCommandType.steerFrontLeft,
+      ManualCommandType.steerRight,
       speedOverride: 40,
     );
     await Future<void>.delayed(const Duration(milliseconds: 550));
@@ -77,7 +81,70 @@ void main() {
     final steerFront = controller.telemetry.motors[MotorIds.steerFront]!;
     expect(steerFront.state, MotorState.running);
     expect(steerFront.velocityMps, closeTo(0.40, 0.01));
-    expect(steerFront.positionM, lessThan(0));
+    expect(steerFront.positionM, greaterThan(-1.0));
+    expect(steerFront.positionM, lessThan(0.0));
+  });
+
+  test('mock hoist down increases Z from top zero', () async {
+    final controller = OhtManualController();
+    addTearDown(controller.dispose);
+
+    await controller.connect();
+    for (var i = 0; i < 10 && !controller.isConnected; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+
+    await controller.sendManualCommand(
+      ManualCommandType.hoistDown,
+      speedOverride: 30,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 550));
+
+    final lowered = controller.telemetry.motors[MotorIds.hoistFront]!;
+    expect(lowered.direction, 'down');
+    expect(lowered.positionM, greaterThan(0.0));
+    expect(lowered.positionM, lessThan(0.05));
+    expect(controller.telemetry.sensors.hoistFrontUpperLimit, isFalse);
+
+    await controller.sendManualCommand(
+      ManualCommandType.hoistUp,
+      speedOverride: 30,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 550));
+
+    final raised = controller.telemetry.motors[MotorIds.hoistFront]!;
+    expect(raised.positionM, lessThanOrEqualTo(lowered.positionM!));
+    expect(raised.positionM, closeTo(0.0, 0.005));
+    expect(controller.telemetry.sensors.hoistFrontUpperLimit, isTrue);
+  });
+
+  test('mock steering reaches right limit in about two seconds', () async {
+    final controller = OhtManualController();
+    addTearDown(controller.dispose);
+
+    await controller.connect();
+    for (var i = 0; i < 10 && !controller.isConnected; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+
+    await controller.sendManualCommand(ManualCommandType.steerRight);
+    await Future<void>.delayed(const Duration(milliseconds: 2100));
+
+    final steerFront = controller.telemetry.motors[MotorIds.steerFront]!;
+    expect(steerFront.state, MotorState.stopped);
+    expect(steerFront.positionM, closeTo(1.0, 0.001));
+    expect(controller.telemetry.sensors.steerFrontLeft, isFalse);
+    expect(controller.telemetry.sensors.steerFrontRight, isTrue);
+  });
+
+  test('hoist top limit formats as zero height', () {
+    final details = formatMotorDetails(
+      MotorIds.hoistFront,
+      null,
+      SensorStatus.noData().copyWith(hoistFrontUpperLimit: true),
+    );
+
+    expect(details, contains('H: 0.00 m'));
   });
 
   test(
@@ -347,7 +414,7 @@ void main() {
       expect(find.text('Điều Khiển Thủ Công'), findsOneWidget);
       expect(find.text('TIẾN'), findsOneWidget);
       expect(find.text('LÙI'), findsOneWidget);
-      expect(find.text('TRÁI'), findsOneWidget);
+      expect(find.text('TRÁI'), findsWidgets);
       expect(find.text('PHẢI'), findsWidgets);
       expect(find.text('NÂNG'), findsOneWidget);
       expect(find.text('HẠ'), findsOneWidget);
@@ -493,7 +560,7 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('advanced controls open from the diagnostics action button', (
+  testWidgets('diagnostics page does not expose advanced controls', (
     WidgetTester tester,
   ) async {
     await pumpDesktopApp(tester);
@@ -504,38 +571,12 @@ void main() {
 
     expect(find.byKey(const Key('top_nav_diagnostics_active')), findsOneWidget);
     expect(find.byKey(const Key('diagnostics_panel')), findsOneWidget);
-    expect(find.byKey(const Key('advanced_control_panel')), findsNothing);
-
-    await tester.tap(
+    expect(
       find.byKey(const Key('diagnostics_advanced_control_button')),
+      findsNothing,
     );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('advanced_control_panel')), findsOneWidget);
-    expect(find.byKey(const Key('advanced_control_dialog')), findsOneWidget);
-    final dialogSize = tester.getSize(
-      find.byKey(const Key('advanced_control_dialog')),
-    );
-    expect(dialogSize.height, lessThan(680));
-
-    for (final id in <String>[
-      'travel_front',
-      'travel_rear',
-      'hoist_front',
-      'hoist_rear',
-      'steer_front',
-      'steer_rear',
-    ]) {
-      expect(find.byKey(Key('advanced_motor_$id')), findsOneWidget);
-      expect(find.byKey(Key('advanced_motor_${id}_forward')), findsOneWidget);
-      expect(find.byKey(Key('advanced_motor_${id}_reverse')), findsOneWidget);
-      expect(find.byKey(Key('advanced_motor_${id}_slider')), findsOneWidget);
-    }
-    expect(find.byType(Slider), findsNWidgets(6));
-    final firstDirectionButton = tester.getSize(
-      find.byKey(const Key('advanced_motor_travel_front_forward')),
-    );
-    expect(firstDirectionButton.height, greaterThanOrEqualTo(76));
+    expect(find.byKey(const Key('advanced_control_panel')), findsNothing);
+    expect(find.byKey(const Key('advanced_control_dialog')), findsNothing);
     expect(find.byKey(const Key('dashboard_manual_panel')), findsNothing);
   });
 
@@ -684,7 +725,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('1.2'), findsOneWidget);
-    expect(find.text('0.60'), findsOneWidget);
+    expect(find.text('60'), findsOneWidget);
 
     service.emitTelemetry(
       _telemetry(errors: const ['Motor travel_front disconnected']),
@@ -880,7 +921,7 @@ void main() {
     await tester.tap(find.byKey(const Key('top_nav_diagnostics')));
     await tester.pump();
     expect(find.text('Hardware Diagnostics'), findsOneWidget);
-    expect(find.text('ADVANCED CONTROL'), findsOneWidget);
+    expect(find.text('ADVANCED CONTROL'), findsNothing);
 
     await tester.tap(find.byKey(const Key('top_nav_logs')));
     await tester.pump();

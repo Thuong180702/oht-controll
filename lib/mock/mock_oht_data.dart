@@ -15,12 +15,12 @@ class MockOhtData {
       emergencyStop: false,
       motors: {for (final id in MotorIds.all) id: MotorStatus.stopped(id)},
       sensors: const SensorStatus(
-        steerFrontLeft: false,
-        steerFrontRight: true,
-        steerRearLeft: false,
-        steerRearRight: true,
-        hoistFrontUpperLimit: false,
-        hoistRearUpperLimit: false,
+        steerFrontLeft: true,   // Default at full left
+        steerFrontRight: false,
+        steerRearLeft: true,    // Default at full left
+        steerRearRight: false,
+        hoistFrontUpperLimit: true,  // Default at top
+        hoistRearUpperLimit: true,   // Default at top
         pumperFront: false,
         pumperRear: false,
         lidarUpper: 0,

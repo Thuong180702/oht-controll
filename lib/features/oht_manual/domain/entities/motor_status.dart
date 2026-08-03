@@ -14,7 +14,13 @@ class MotorStatus {
   final String id;
   final MotorState state;
   final String direction;
+
+  /// Motor speed in RPM (raw value from firmware feedback).
+  /// This is the actual servo RPM, not a percentage.
   final int speed;
+
+  /// Device velocity in m/s (only meaningful for travel overall speed).
+  /// Per-motor velocity is shown as RPM, not m/s.
   final double? velocityMps;
   final double? positionM;
   final String? warning;
@@ -35,7 +41,7 @@ class MotorStatus {
       id: id,
       state: MotorStateLabel.fromWire(json['state'] as String?),
       direction: (json['direction'] as String?) ?? 'none',
-      speed: _clampSpeed(_asInt(json['speed'])),
+      speed: (_asInt(json['speed'])).abs(),  // RPM value
       velocityMps: _asOptionalDouble(
         json['velocityMps'] ??
             json['velocity'] ??
@@ -65,7 +71,7 @@ class MotorStatus {
       id: id,
       state: state ?? this.state,
       direction: direction ?? this.direction,
-      speed: _clampSpeed(speed ?? this.speed),
+      speed: speed ?? this.speed,
       velocityMps: velocityMps ?? this.velocityMps,
       positionM: positionM ?? this.positionM,
       warning: warning,
@@ -101,9 +107,5 @@ class MotorStatus {
       return double.tryParse(value);
     }
     return null;
-  }
-
-  static int _clampSpeed(int value) {
-    return value.clamp(0, 100).toInt();
   }
 }

@@ -5,6 +5,11 @@ class AuthStorage {
   static const defaultPassword = 'Thaco@1234';
   static const _passwordKey = 'admin_password';
 
+  /// Seeds the default password on first run.
+  // TODO: Migrate to flutter_secure_storage for production builds.
+  // ponytail: SharedPreferences stores plaintext — acceptable for factory floor
+  // tablets behind firewall, but upgrade to flutter_secure_storage before
+  // deploying to unmanaged devices.
   static Future<void> ensureSeeded() async {
     final prefs = await SharedPreferences.getInstance();
     if (!prefs.containsKey(_passwordKey)) {

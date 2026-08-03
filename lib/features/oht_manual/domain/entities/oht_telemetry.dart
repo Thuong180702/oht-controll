@@ -85,6 +85,22 @@ class OhtTelemetry {
   factory OhtTelemetry.fromFirmwareState(Map<String, dynamic> json) {
     final state = _mapFrom(json['state']);
     final timestamp = _timestampFrom(json['timestamp'] ?? state['timestamp']);
+
+    // Parse errors from error_code field
+    final List<String> errors = [];
+    final errorCodeStr = _toString(state['error_code']);
+    if (errorCodeStr != null &&
+        errorCodeStr.isNotEmpty &&
+        errorCodeStr != 'E00000') {
+      errors.add(errorCodeStr);
+    }
+    errors.addAll(_stringList(json['errors'] ?? state['errors']));
+
+    // Parse oht_state: 3=error, 4=emergency
+    final ohtState = _asInt(state['oht_state']);
+    final numericMode = _asInt(state['mode']);
+    final ohtEmergency = ohtState == 4;
+
     final motors = <String, MotorStatus>{
       MotorIds.hoistFront: _firmwareMotor(MotorIds.hoistFront, state, 0),
       MotorIds.hoistRear: _firmwareMotor(MotorIds.hoistRear, state, 1),
@@ -94,30 +110,36 @@ class OhtTelemetry {
       MotorIds.steerRear: _firmwareMotor(MotorIds.steerRear, state, 5),
     };
 
+    // Parse QR position -> positionX (mm -> m)
+    final qrPositionMm = _asDouble(state['qr_position_mm']);
+    final positionX = qrPositionMm != null ? qrPositionMm / 1000.0 : 0.0;
+
     return OhtTelemetry(
-      mode: _modeFrom(json['mode'] ?? state['mode']),
+      mode: _modeFromNumeric(numericMode, ohtState),
       connected: _boolFrom(
         state['online'] ?? json['online'],
         defaultValue: true,
       ),
-      emergencyStop: _boolFrom(
-        state['emergencyStop'] ??
-            state['emergency_stop'] ??
-            state['estop'] ??
-            json['emergencyStop'] ??
-            json['emergency_stop'] ??
-            json['estop'],
-        defaultValue: false,
-      ),
+      emergencyStop: ohtEmergency ||
+          _boolFrom(
+            state['emergencyStop'] ??
+                state['emergency_stop'] ??
+                state['estop'] ??
+                json['emergencyStop'] ??
+                json['emergency_stop'] ??
+                json['estop'],
+            defaultValue: false,
+          ),
       motors: motors,
       sensors: _firmwareSensors(state),
-      errors: _stringList(json['errors'] ?? state['errors']),
+      errors: errors,
       timestamp: timestamp,
+      positionX: positionX,
       batteryLevel: _asInt(
-        json['batteryLevel'] ?? state['batteryLevel'] ?? 100,
+        json['batteryLevel'] ?? state['bat_soc'] ?? 100,
       ).clamp(0, 100).toInt(),
       isCharging: _boolFrom(
-        json['isCharging'] ?? state['isCharging'],
+        json['isCharging'] ?? state['bat_charging'],
         defaultValue: false,
       ),
     );
@@ -171,6 +193,23 @@ class OhtTelemetry {
     };
   }
 
+  static OhtMode _modeFromNumeric(int numericMode, int ohtState) {
+    // numeric: 0=auto, 1=manual
+    // oht_state: 0=idle, 1=running, 2=paused, 3=error, 4=emergency
+    if (ohtState == 3 || ohtState == 4) {
+      return OhtMode.error;
+    }
+    switch (numericMode) {
+      case 0:
+        return OhtMode.auto;
+      case 1:
+        return OhtMode.manual;
+      default:
+        // Fallback to string-based parsing for backward compat
+        return OhtMode.auto;
+    }
+  }
+
   static Map<String, dynamic> _mapFrom(Object? value) {
     if (value is Map<String, dynamic>) {
       return value;
@@ -220,7 +259,7 @@ class OhtTelemetry {
       id: id,
       state: stateLabel,
       direction: _directionForSpeed(id, rawSpeed, running),
-      speed: rawSpeed.abs().clamp(0, 100).toInt(),
+      speed: rawSpeed.abs(),  // RPM value from firmware
       warning: connected ? null : 'disconnected',
     );
   }
@@ -233,13 +272,6 @@ class OhtTelemetry {
       return speed > 0 ? 'forward' : 'backward';
     }
     return 'moving';
-  }
-
-  static OhtMode _modeFrom(Object? value) {
-    if (value is String && value.trim().isNotEmpty) {
-      return OhtModeLabel.fromWire(value);
-    }
-    return OhtMode.manual;
   }
 
   static DateTime _timestampFrom(Object? value) {
@@ -307,6 +339,22 @@ class OhtTelemetry {
       return int.tryParse(value);
     }
     return null;
+  }
+
+  static double? _asDouble(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
+  }
+
+  static String? _toString(Object? value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    return value.toString();
   }
 
   static List<String> _stringList(Object? value) {

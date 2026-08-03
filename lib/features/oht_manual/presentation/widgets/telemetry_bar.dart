@@ -87,7 +87,7 @@ class TelemetryBar extends StatelessWidget {
         icon: Icons.place_rounded,
         label: 'Vị trí',
         value:
-            'X: ${t.positionX.toStringAsFixed(1)}  Y: ${t.positionY.toStringAsFixed(1)}',
+            'X: ${t.positionX.toStringAsFixed(1)}m',
         valueColor: AppColors.textSecondary,
       ),
       _TelemetryTile(

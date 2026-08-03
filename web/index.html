@@ -1,46 +1,200 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="OHT manual control & monitoring — offline-capable PWA">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <!-- Intercept & redirect Flutter's legacy SW registration to ./sw.js (Prevents 70% freeze & idle reloads) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      const _origRegister = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+      navigator.serviceWorker.register = function(url, options) {
+        const urlStr = String(url);
+        if (urlStr.includes('flutter_service_worker.js')) {
+          console.log('[PWA] Redirected flutter_service_worker.js registration to ./sw.js?v=16');
+          return _origRegister('./sw.js?v=16', options);
+        }
+        return _origRegister(url, options);
+      };
+    }
+  </script>
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="flutter_application_1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OHT Control">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!-- Theme color for browser chrome -->
+  <meta name="theme-color" content="#07539D">
 
-  <title>flutter_application_1</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <title>OHT Control System</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="loading.css">
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <!-- ─── Loading Screen ────────────────────────────────────────────── -->
+  <div id="loading-screen">
+    <div class="loading-logo">
+      <div class="loading-logo-ring"></div>
+      <div class="loading-logo-text">OHT</div>
+    </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+    <div class="loading-title">OHT Control System</div>
+    <div class="loading-subtitle">Overhead Hoist Transport — Manual Control & Monitoring</div>
+
+    <div class="loading-progress-container">
+      <span class="loading-percent" id="loading-percent"></span>
+      <div class="loading-progress-track">
+        <div class="loading-progress-bar indeterminate" id="loading-bar"></div>
+      </div>
+    </div>
+
+    <div class="loading-status" id="loading-status">Đang khởi tạo...</div>
+
+    <div class="loading-error" id="loading-error">
+      <div class="loading-error-text" id="loading-error-text"></div>
+      <button class="loading-retry-btn" onclick="location.reload()">Thử lại</button>
+    </div>
+
+    <div class="loading-version">v1.0.0 · Cloudflare Pages · PWA</div>
+  </div>
+
+  <!-- ─── Offline Banner ────────────────────────────────────────────── -->
+  <div class="loading-offline-banner" id="offline-banner">
+    ⚠ Mạng ngoại tuyến / Local OHT Mode
+  </div>
+
+  <script>
+    // ─── Loading Screen Controller ─────────────────────────────────────
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingStatus = document.getElementById('loading-status');
+    const loadingPercent = document.getElementById('loading-percent');
+    const loadingError = document.getElementById('loading-error');
+    const loadingErrorText = document.getElementById('loading-error-text');
+    const offlineBanner = document.getElementById('offline-banner');
+
+    let appLoaded = false;
+
+    function setLoadingProgress(percent, message) {
+      if (appLoaded) return;
+      if (loadingBar.classList.contains('indeterminate')) {
+        loadingBar.classList.remove('indeterminate');
+      }
+      loadingBar.style.width = percent + '%';
+      loadingPercent.textContent = percent + '%';
+      if (message) loadingStatus.textContent = message;
+    }
+
+    function setLoadingStatus(message) {
+      if (appLoaded) return;
+      loadingStatus.textContent = message;
+    }
+
+    function showLoadingError(message) {
+      if (appLoaded) return;
+      loadingError.classList.add('visible');
+      loadingErrorText.textContent = message;
+    }
+
+    function hideLoadingScreen() {
+      appLoaded = true;
+      loadingScreen.classList.add('hidden');
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+      }, 500);
+    }
+
+    // ─── Online/Offline Detection ──────────────────────────────────────
+    function updateOnlineStatus() {
+      if (navigator.onLine) {
+        offlineBanner.classList.remove('visible');
+      } else {
+        offlineBanner.classList.add('visible');
+      }
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
+    // ─── Service Worker Registration ──────────────────────────────────
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          // Clean legacy registrations
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            if (reg.active && reg.active.scriptURL.includes('flutter_service_worker.js')) {
+              console.log('[PWA] Cleaning legacy flutter_service_worker.js');
+              await reg.unregister();
+            }
+          }
+          const reg = await navigator.serviceWorker.register('./sw.js?v=16', { scope: './' });
+          console.log('[PWA] Service Worker active & ready:', reg.scope);
+        } catch (err) {
+          console.warn('[PWA] SW registration notice:', err);
+        }
+      });
+    }
+  </script>
+
+  <!-- ─── Flutter Bootstrap ─────────────────────────────────────────── -->
+  <script>
+    window.addEventListener('load', function () {
+      setLoadingProgress(30, 'Đang tải ứng dụng...');
+
+      window._flutter = window._flutter || {};
+
+      var scriptTag = document.createElement('script');
+      scriptTag.src = 'flutter_bootstrap.js';
+      scriptTag.type = 'application/javascript';
+
+      scriptTag.addEventListener('load', function () {
+        setLoadingProgress(70, 'Đang khởi động giao diện...');
+
+        if (typeof _flutter !== 'undefined' && _flutter.loader) {
+          _flutter.loader.load({
+            onEntrypointLoaded: function (engineInitializer) {
+              setLoadingProgress(85, 'Đang khởi tạo engine...');
+              engineInitializer.initializeEngine().then(function (appRunner) {
+                setLoadingProgress(95, 'Đang render giao diện...');
+                appRunner.runApp().then(function () {
+                  setLoadingProgress(100, 'Hoàn tất!');
+                  setTimeout(hideLoadingScreen, 300);
+                });
+              });
+            },
+          });
+        } else {
+          setTimeout(() => {
+            setLoadingProgress(100, 'Hoàn tất!');
+            setTimeout(hideLoadingScreen, 300);
+          }, 1500);
+        }
+      });
+
+      scriptTag.addEventListener('error', function () {
+        if (!navigator.onLine && !appLoaded) {
+          showLoadingError(
+            'Không thể tải ứng dụng. Vui lòng mở server một lần đầu để lưu cache.'
+          );
+        } else if (!appLoaded) {
+          showLoadingError('Lỗi tải ứng dụng. Vui lòng thử lại.');
+        }
+      });
+
+      document.body.appendChild(scriptTag);
+    });
+  </script>
 </body>
 </html>

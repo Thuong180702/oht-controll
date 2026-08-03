@@ -1,37 +1,25 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import '../../domain/entities/alarm_event.dart';
+
+// Conditional import for platform-specific file saving
+import 'event_log_excel_exporter_stub.dart'
+    if (dart.library.io) 'event_log_excel_exporter_io.dart'
+    if (dart.library.html) 'event_log_excel_exporter_web.dart' as saver;
 
 class EventLogExcelExporter {
   const EventLogExcelExporter._();
 
-  static Future<File> export(List<AlarmEvent> events) async {
-    final outputDir = await _downloadDirectory();
+  /// Export events to an Excel file.
+  /// On desktop: saves to Downloads folder, returns file path.
+  /// On web: triggers browser download, returns filename.
+  static Future<String> export(List<AlarmEvent> events) async {
     final fileName = 'oht_event_log_${_fileTimestamp(DateTime.now())}.xlsx';
-    final file = File('${outputDir.path}${Platform.pathSeparator}$fileName');
     final bytes = _buildWorkbook(events, DateTime.now());
-
-    return file.writeAsBytes(bytes, flush: true);
-  }
-
-  static Future<Directory> _downloadDirectory() async {
-    final home =
-        Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'];
-    if (home != null && home.trim().isNotEmpty) {
-      final downloads = Directory('$home${Platform.pathSeparator}Downloads');
-      try {
-        if (!await downloads.exists()) {
-          await downloads.create(recursive: true);
-        }
-        return downloads;
-      } catch (_) {
-        // Fall back to the current process directory below.
-      }
-    }
-
-    return Directory.current;
+    return saver.saveExcelFile(fileName, bytes);
   }
 
   static Uint8List _buildWorkbook(List<AlarmEvent> events, DateTime createdAt) {

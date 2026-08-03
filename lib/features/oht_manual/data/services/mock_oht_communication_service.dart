@@ -27,18 +27,13 @@ class MockOhtCommunicationService implements OhtCommunicationService {
     endpoint: AppConstants.mockEndpoint,
   );
   int _tick = 0;
-  int _hoistFrontUpTicks = 0;
-  int _hoistRearUpTicks = 0;
-  int _steerFrontLeftTicks = 0;
-  int _steerFrontRightTicks = 0;
-  int _steerRearLeftTicks = 0;
-  int _steerRearRightTicks = 0;
+  int _hoistDownTicks = 0;
   double _travelFrontPositionM = 0;
   double _travelRearPositionM = 0;
-  double _steerFrontPositionM = 0;
-  double _steerRearPositionM = 0;
-  double _hoistFrontPositionM = 0;
-  double _hoistRearPositionM = 0;
+  double _steerFrontPositionM = -1.0; // Default at full left
+  double _steerRearPositionM = -1.0; // Default at full left
+  double _hoistFrontPositionM = 0.0; // Default at top (fully raised)
+  double _hoistRearPositionM = 0.0; // Default at top (fully raised)
 
   @override
   Stream<OhtTelemetry> get telemetryStream => _telemetryController.stream;
@@ -142,81 +137,70 @@ class MockOhtCommunicationService implements OhtCommunicationService {
       pumperRear: phase >= 400 && phase <= 402,
     );
 
+    // Unified hoist simulation
+    // Hoist starts at top (position=0, upper_limit=true).
+    // Down increases lowered distance, Up returns toward 0 (top limit).
     final frontHoist = motors[MotorIds.hoistFront];
-    if (frontHoist?.state == MotorState.running &&
-        frontHoist?.direction == 'up') {
-      _updateHoistPosition(motors, MotorIds.hoistFront, frontHoist!);
-      _hoistFrontUpTicks++;
-      if (_hoistFrontUpTicks >= 8) {
-        motors[MotorIds.hoistFront] = _stoppedMotor(MotorIds.hoistFront);
-        sensors = sensors.copyWith(hoistFrontUpperLimit: true);
-      }
-    } else if (frontHoist?.state == MotorState.running &&
-        frontHoist?.direction == 'down') {
-      _updateHoistPosition(motors, MotorIds.hoistFront, frontHoist!);
-      _hoistFrontUpTicks = 0;
-      sensors = sensors.copyWith(hoistFrontUpperLimit: false);
-    }
-
-    final frontSteer = motors[MotorIds.steerFront];
-    if (frontSteer?.state == MotorState.running &&
-        frontSteer?.direction == 'left') {
-      _updateSteerPosition(motors, MotorIds.steerFront, frontSteer!);
-      _steerFrontRightTicks = 0;
-      sensors = sensors.copyWith(steerFrontRight: false);
-      _steerFrontLeftTicks++;
-      if (_steerFrontLeftTicks >= 8) {
-        motors[MotorIds.steerFront] = _stoppedMotor(MotorIds.steerFront);
-        sensors = sensors.copyWith(steerFrontLeft: true);
-      }
-    } else if (frontSteer?.state == MotorState.running &&
-        frontSteer?.direction == 'right') {
-      _updateSteerPosition(motors, MotorIds.steerFront, frontSteer!);
-      _steerFrontLeftTicks = 0;
-      sensors = sensors.copyWith(steerFrontLeft: false);
-      _steerFrontRightTicks++;
-      if (_steerFrontRightTicks >= 8) {
-        motors[MotorIds.steerFront] = _stoppedMotor(MotorIds.steerFront);
-        sensors = sensors.copyWith(steerFrontRight: true);
-      }
-    }
-
     final rearHoist = motors[MotorIds.hoistRear];
-    if (rearHoist?.state == MotorState.running &&
-        rearHoist?.direction == 'up') {
-      _updateHoistPosition(motors, MotorIds.hoistRear, rearHoist!);
-      _hoistRearUpTicks++;
-      if (_hoistRearUpTicks >= 8) {
-        motors[MotorIds.hoistRear] = _stoppedMotor(MotorIds.hoistRear);
-        sensors = sensors.copyWith(hoistRearUpperLimit: true);
+    if (frontHoist?.state == MotorState.running &&
+        rearHoist?.state == MotorState.running) {
+      if (frontHoist?.direction == 'down') {
+        _updateHoistPosition(motors, MotorIds.hoistFront, frontHoist!);
+        _updateHoistPosition(motors, MotorIds.hoistRear, rearHoist!);
+        _hoistDownTicks++;
+        sensors = sensors.copyWith(
+          hoistFrontUpperLimit: false,
+          hoistRearUpperLimit: false,
+        );
+        if (_hoistDownTicks >= 12) {
+          motors[MotorIds.hoistFront] = _stoppedMotor(MotorIds.hoistFront);
+          motors[MotorIds.hoistRear] = _stoppedMotor(MotorIds.hoistRear);
+        }
+      } else if (frontHoist?.direction == 'up') {
+        _updateHoistPosition(motors, MotorIds.hoistFront, frontHoist!);
+        _updateHoistPosition(motors, MotorIds.hoistRear, rearHoist!);
+        if (_hoistFrontPositionM <= 0.0 || _hoistRearPositionM <= 0.0) {
+          motors[MotorIds.hoistFront] = _stoppedMotor(MotorIds.hoistFront);
+          motors[MotorIds.hoistRear] = _stoppedMotor(MotorIds.hoistRear);
+          sensors = sensors.copyWith(
+            hoistFrontUpperLimit: true,
+            hoistRearUpperLimit: true,
+          );
+        }
       }
-    } else if (rearHoist?.state == MotorState.running &&
-        rearHoist?.direction == 'down') {
-      _updateHoistPosition(motors, MotorIds.hoistRear, rearHoist!);
-      _hoistRearUpTicks = 0;
-      sensors = sensors.copyWith(hoistRearUpperLimit: false);
     }
 
+    // Unified steer simulation
+    // Steer starts at full left (position=-1.0, steer_left sensors=true).
+    // With the 500 ms mock tick, full left to full right takes about 2 seconds.
+    final frontSteer = motors[MotorIds.steerFront];
     final rearSteer = motors[MotorIds.steerRear];
-    if (rearSteer?.state == MotorState.running &&
-        rearSteer?.direction == 'left') {
-      _updateSteerPosition(motors, MotorIds.steerRear, rearSteer!);
-      _steerRearRightTicks = 0;
-      sensors = sensors.copyWith(steerRearRight: false);
-      _steerRearLeftTicks++;
-      if (_steerRearLeftTicks >= 8) {
-        motors[MotorIds.steerRear] = _stoppedMotor(MotorIds.steerRear);
-        sensors = sensors.copyWith(steerRearLeft: true);
-      }
-    } else if (rearSteer?.state == MotorState.running &&
-        rearSteer?.direction == 'right') {
-      _updateSteerPosition(motors, MotorIds.steerRear, rearSteer!);
-      _steerRearLeftTicks = 0;
-      sensors = sensors.copyWith(steerRearLeft: false);
-      _steerRearRightTicks++;
-      if (_steerRearRightTicks >= 8) {
-        motors[MotorIds.steerRear] = _stoppedMotor(MotorIds.steerRear);
-        sensors = sensors.copyWith(steerRearRight: true);
+    if (frontSteer?.state == MotorState.running &&
+        rearSteer?.state == MotorState.running) {
+      if (frontSteer?.direction == 'right') {
+        _updateSteerPosition(motors, MotorIds.steerFront, frontSteer!);
+        _updateSteerPosition(motors, MotorIds.steerRear, rearSteer!);
+        sensors = sensors.copyWith(steerFrontLeft: false, steerRearLeft: false);
+        if (_steerFrontPositionM >= 1.0 || _steerRearPositionM >= 1.0) {
+          motors[MotorIds.steerFront] = _stoppedMotor(MotorIds.steerFront);
+          motors[MotorIds.steerRear] = _stoppedMotor(MotorIds.steerRear);
+          sensors = sensors.copyWith(
+            steerFrontRight: true,
+            steerRearRight: true,
+          );
+        }
+      } else if (frontSteer?.direction == 'left') {
+        _updateSteerPosition(motors, MotorIds.steerFront, frontSteer!);
+        _updateSteerPosition(motors, MotorIds.steerRear, rearSteer!);
+        sensors = sensors.copyWith(
+          steerFrontRight: false,
+          steerRearRight: false,
+        );
+        if (_steerFrontPositionM <= -1.0 || _steerRearPositionM <= -1.0) {
+          motors[MotorIds.steerFront] = _stoppedMotor(MotorIds.steerFront);
+          motors[MotorIds.steerRear] = _stoppedMotor(MotorIds.steerRear);
+          sensors = sensors.copyWith(steerFrontLeft: true, steerRearLeft: true);
+        }
       }
     }
 
@@ -367,64 +351,41 @@ class MockOhtCommunicationService implements OhtCommunicationService {
           'backward',
           command.speed,
         );
-      case ManualCommandType.travelFrontForward:
-        motors[MotorIds.travelFront] = _runningMotor(
-          MotorIds.travelFront,
-          'forward',
-          command.speed,
-        );
-      case ManualCommandType.travelFrontBackward:
-        motors[MotorIds.travelFront] = _runningMotor(
-          MotorIds.travelFront,
-          'backward',
-          command.speed,
-        );
-      case ManualCommandType.travelRearForward:
-        motors[MotorIds.travelRear] = _runningMotor(
-          MotorIds.travelRear,
-          'forward',
-          command.speed,
-        );
-      case ManualCommandType.travelRearBackward:
-        motors[MotorIds.travelRear] = _runningMotor(
-          MotorIds.travelRear,
-          'backward',
-          command.speed,
-        );
       case ManualCommandType.travelStop:
         motors[MotorIds.travelFront] = _stoppedMotor(MotorIds.travelFront);
         motors[MotorIds.travelRear] = _stoppedMotor(MotorIds.travelRear);
-      case ManualCommandType.steerFrontLeft:
-        _steerFrontLeftTicks = 0;
-        _steerFrontRightTicks = 0;
-        sensors = sensors.copyWith(steerFrontRight: false);
-        motors[MotorIds.steerFront] = _runningMotor(
-          MotorIds.steerFront,
-          'left',
-          command.speed,
-        );
-      case ManualCommandType.steerFrontRight:
-        _steerFrontLeftTicks = 0;
-        _steerFrontRightTicks = 0;
-        sensors = sensors.copyWith(steerFrontLeft: false);
+      case ManualCommandType.steerLeft:
+        // If already at left limit, keep limit active
+        if (_steerFrontPositionM <= -1.0 || _steerRearPositionM <= -1.0) {
+          sensors = sensors.copyWith(
+            steerFrontLeft: true,
+            steerRearLeft: true,
+            steerFrontRight: false,
+            steerRearRight: false,
+          );
+        } else {
+          sensors = sensors.copyWith(
+            steerFrontRight: false,
+            steerRearRight: false,
+          );
+          motors[MotorIds.steerFront] = _runningMotor(
+            MotorIds.steerFront,
+            'left',
+            command.speed,
+          );
+          motors[MotorIds.steerRear] = _runningMotor(
+            MotorIds.steerRear,
+            'left',
+            command.speed,
+          );
+        }
+      case ManualCommandType.steerRight:
+        sensors = sensors.copyWith(steerFrontLeft: false, steerRearLeft: false);
         motors[MotorIds.steerFront] = _runningMotor(
           MotorIds.steerFront,
           'right',
           command.speed,
         );
-      case ManualCommandType.steerRearLeft:
-        _steerRearLeftTicks = 0;
-        _steerRearRightTicks = 0;
-        sensors = sensors.copyWith(steerRearRight: false);
-        motors[MotorIds.steerRear] = _runningMotor(
-          MotorIds.steerRear,
-          'left',
-          command.speed,
-        );
-      case ManualCommandType.steerRearRight:
-        _steerRearLeftTicks = 0;
-        _steerRearRightTicks = 0;
-        sensors = sensors.copyWith(steerRearLeft: false);
         motors[MotorIds.steerRear] = _runningMotor(
           MotorIds.steerRear,
           'right',
@@ -433,33 +394,40 @@ class MockOhtCommunicationService implements OhtCommunicationService {
       case ManualCommandType.steerStop:
         motors[MotorIds.steerFront] = _stoppedMotor(MotorIds.steerFront);
         motors[MotorIds.steerRear] = _stoppedMotor(MotorIds.steerRear);
-      case ManualCommandType.hoistFrontUp:
-        _hoistFrontUpTicks = 0;
-        sensors = sensors.copyWith(hoistFrontUpperLimit: false);
-        motors[MotorIds.hoistFront] = _runningMotor(
-          MotorIds.hoistFront,
-          'up',
-          command.speed,
+      case ManualCommandType.hoistUp:
+        // If already at top, keep upper limit active
+        if (_hoistFrontPositionM <= 0.0 || _hoistRearPositionM <= 0.0) {
+          sensors = sensors.copyWith(
+            hoistFrontUpperLimit: true,
+            hoistRearUpperLimit: true,
+          );
+        } else {
+          sensors = sensors.copyWith(
+            hoistFrontUpperLimit: false,
+            hoistRearUpperLimit: false,
+          );
+          motors[MotorIds.hoistFront] = _runningMotor(
+            MotorIds.hoistFront,
+            'up',
+            command.speed,
+          );
+          motors[MotorIds.hoistRear] = _runningMotor(
+            MotorIds.hoistRear,
+            'up',
+            command.speed,
+          );
+        }
+      case ManualCommandType.hoistDown:
+        _hoistDownTicks = 0;
+        sensors = sensors.copyWith(
+          hoistFrontUpperLimit: false,
+          hoistRearUpperLimit: false,
         );
-      case ManualCommandType.hoistFrontDown:
-        _hoistFrontUpTicks = 0;
-        sensors = sensors.copyWith(hoistFrontUpperLimit: false);
         motors[MotorIds.hoistFront] = _runningMotor(
           MotorIds.hoistFront,
           'down',
           command.speed,
         );
-      case ManualCommandType.hoistRearUp:
-        _hoistRearUpTicks = 0;
-        sensors = sensors.copyWith(hoistRearUpperLimit: false);
-        motors[MotorIds.hoistRear] = _runningMotor(
-          MotorIds.hoistRear,
-          'up',
-          command.speed,
-        );
-      case ManualCommandType.hoistRearDown:
-        _hoistRearUpTicks = 0;
-        sensors = sensors.copyWith(hoistRearUpperLimit: false);
         motors[MotorIds.hoistRear] = _runningMotor(
           MotorIds.hoistRear,
           'down',
@@ -468,6 +436,10 @@ class MockOhtCommunicationService implements OhtCommunicationService {
       case ManualCommandType.hoistStop:
         motors[MotorIds.hoistFront] = _stoppedMotor(MotorIds.hoistFront);
         motors[MotorIds.hoistRear] = _stoppedMotor(MotorIds.hoistRear);
+      case ManualCommandType.stopAll:
+        for (final id in MotorIds.all) {
+          motors[id] = _stoppedMotor(id);
+        }
       case ManualCommandType.heartbeat:
         break;
     }
@@ -498,8 +470,9 @@ class MockOhtCommunicationService implements OhtCommunicationService {
     String id,
     MotorStatus motor,
   ) {
-    final delta = motor.speed.clamp(0, 100).toDouble() / 100.0 * 0.01;
-    final sign = motor.direction == 'up' ? 1.0 : -1.0;
+    final pct = (motor.speed / 30.0).clamp(0.0, 100.0); // RPM → 0-100
+    final delta = pct / 100.0 * 0.01;
+    final sign = motor.direction == 'up' ? -1.0 : 1.0;
     final next = (_positionForMotor(id) + sign * delta)
         .clamp(0.0, 1.0)
         .toDouble();
@@ -508,11 +481,7 @@ class MockOhtCommunicationService implements OhtCommunicationService {
     } else if (id == MotorIds.hoistRear) {
       _hoistRearPositionM = next;
     }
-    motors[id] = motor.copyWith(
-      velocityMps: motor.speed.clamp(0, 100).toDouble() / 100.0,
-      positionM: next,
-      warning: motor.warning,
-    );
+    motors[id] = motor.copyWith(velocityMps: pct / 100.0, positionM: next);
   }
 
   void _updateTravelPosition(
@@ -520,7 +489,8 @@ class MockOhtCommunicationService implements OhtCommunicationService {
     String id,
     MotorStatus motor,
   ) {
-    final delta = motor.speed.clamp(0, 100).toDouble() / 100.0 * 0.05;
+    final pct = (motor.speed / 30.0).clamp(0.0, 100.0); // RPM → 0-100
+    final delta = pct / 100.0 * 0.05;
     final sign = motor.direction == 'forward' ? 1.0 : -1.0;
     final next = (_positionForMotor(id) + sign * delta).toDouble();
     if (id == MotorIds.travelFront) {
@@ -528,11 +498,7 @@ class MockOhtCommunicationService implements OhtCommunicationService {
     } else if (id == MotorIds.travelRear) {
       _travelRearPositionM = next;
     }
-    motors[id] = motor.copyWith(
-      velocityMps: motor.speed.clamp(0, 100).toDouble() / 100.0,
-      positionM: next,
-      warning: motor.warning,
-    );
+    motors[id] = motor.copyWith(velocityMps: pct / 100.0, positionM: next);
   }
 
   void _updateSteerPosition(
@@ -540,7 +506,8 @@ class MockOhtCommunicationService implements OhtCommunicationService {
     String id,
     MotorStatus motor,
   ) {
-    final delta = motor.speed.clamp(0, 100).toDouble() / 100.0 * 0.05;
+    final pct = (motor.speed / 30.0).clamp(0.0, 100.0); // RPM → 0-100
+    const delta = 0.5;
     final sign = motor.direction == 'left' ? -1.0 : 1.0;
     final next = (_positionForMotor(id) + sign * delta)
         .clamp(-1.0, 1.0)
@@ -550,21 +517,18 @@ class MockOhtCommunicationService implements OhtCommunicationService {
     } else if (id == MotorIds.steerRear) {
       _steerRearPositionM = next;
     }
-    motors[id] = motor.copyWith(
-      velocityMps: motor.speed.clamp(0, 100).toDouble() / 100.0,
-      positionM: next,
-      warning: motor.warning,
-    );
+    motors[id] = motor.copyWith(velocityMps: pct / 100.0, positionM: next);
   }
 
   MotorStatus _runningMotor(String id, String direction, int speed) {
     final clampedSpeed = speed.clamp(0, 100).toInt();
+    final rpm = clampedSpeed * 30; // Simulate 0-3000 RPM from command %
     return MotorStatus(
       id: id,
       state: MotorState.running,
       direction: direction,
-      speed: clampedSpeed,
-      velocityMps: clampedSpeed / 100.0,
+      speed: rpm,
+      velocityMps: clampedSpeed / 100.0, // Keep m/s for physics
       positionM: _positionForMotor(id),
     );
   }

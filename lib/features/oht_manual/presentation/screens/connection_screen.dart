@@ -34,8 +34,8 @@ class ConnectionScreen extends StatefulWidget {
 }
 
 class _ConnectionScreenState extends State<ConnectionScreen> {
-  final _hostCtrl = TextEditingController(text: '192.168.1.100');
-  final _portCtrl = TextEditingController(text: '8080');
+  final _hostCtrl = TextEditingController(text: '10.14.64.7');
+  final _portCtrl = TextEditingController(text: '80');
   final _pathCtrl = TextEditingController(text: '/ws');
   final _operatorCtrl = TextEditingController(text: 'oht_operator');
   final _passwordCtrl = TextEditingController(text: '••••••••');
@@ -54,7 +54,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     final uri = Uri.tryParse(url);
     if (uri != null) {
       _hostCtrl.text = uri.host.isNotEmpty ? uri.host : '192.168.1.100';
-      _portCtrl.text = uri.port > 0 ? uri.port.toString() : '8080';
+      _portCtrl.text = uri.port > 0 ? uri.port.toString() : '80';
       _pathCtrl.text = uri.path.isNotEmpty ? uri.path : '/ws';
     }
   }

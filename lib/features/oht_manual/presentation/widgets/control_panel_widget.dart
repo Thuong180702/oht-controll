@@ -223,66 +223,16 @@ class _ModePill extends StatelessWidget {
   }
 }
 
-// ─── Expand Button ───────────────────────────────────────────────────────────
-class _ExpandBtn extends StatelessWidget {
-  const _ExpandBtn({required this.expanded, required this.onTap});
-  final bool expanded;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      pressedScale: 0.94,
-      pressedOpacity: 0.78,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-        decoration: BoxDecoration(
-          color: expanded
-              ? AppColors.primary.withValues(alpha: 0.12)
-              : AppColors.surfaceBorder.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(
-            color: expanded
-                ? AppColors.primary.withValues(alpha: 0.4)
-                : AppColors.surfaceBorder,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              expanded ? Icons.unfold_less_rounded : Icons.unfold_more_rounded,
-              size: 11,
-              color: expanded ? AppColors.primary : AppColors.textHint,
-            ),
-            const SizedBox(width: 2),
-            Text(
-              expanded ? 'Thu gọn' : 'Nâng cao',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                color: expanded ? AppColors.primary : AppColors.textHint,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Group Box ───────────────────────────────────────────────────────────────
 class _GroupBox extends StatelessWidget {
   const _GroupBox({
     required this.title,
     required this.icon,
     required this.child,
-    this.trailing,
   });
   final String title;
   final IconData icon;
   final Widget child;
-  final Widget? trailing;
   @override
   Widget build(BuildContext context) {
     final c = AppColors.primary;
@@ -316,8 +266,6 @@ class _GroupBox extends StatelessWidget {
                   letterSpacing: 0.5,
                 ),
               ),
-              const Spacer(),
-              ?trailing,
             ],
           ),
           const SizedBox(height: 10),
@@ -532,489 +480,141 @@ class _UnifiedBtn extends StatelessWidget {
 }
 
 // ─── Travel Control ─────────────────────────────────────────────────────────
-class TravelControlBox extends StatefulWidget {
+class TravelControlBox extends StatelessWidget {
   const TravelControlBox({required this.controller, super.key});
   final OhtManualController controller;
   @override
-  State<TravelControlBox> createState() => _TravelControlBoxState();
-}
-
-class _TravelControlBoxState extends State<TravelControlBox> {
-  bool _expanded = false;
-  @override
   Widget build(BuildContext context) {
+    final c = controller;
     return _GroupBox(
       title: 'DI CHUYỂN',
       icon: Icons.navigation_rounded,
-      trailing: _ExpandBtn(
-        expanded: _expanded,
-        onTap: () => setState(() => _expanded = !_expanded),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: CmdBtn(
+                    label: 'Tiến',
+                    icon: Icons.arrow_upward_rounded,
+                    type: ManualCommandType.travelForward,
+                    controller: c,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: CmdBtn(
+                    label: 'Lùi',
+                    icon: Icons.arrow_downward_rounded,
+                    type: ManualCommandType.travelBackward,
+                    controller: c,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      child: _expanded ? _buildExpanded() : _buildUnified(),
-    );
-  }
-
-  Widget _buildUnified() {
-    final c = widget.controller;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: CmdBtn(
-                  label: 'Tiến',
-                  icon: Icons.arrow_upward_rounded,
-                  type: ManualCommandType.travelForward,
-                  controller: c,
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: CmdBtn(
-                  label: 'Lùi',
-                  icon: Icons.arrow_downward_rounded,
-                  type: ManualCommandType.travelBackward,
-                  controller: c,
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExpanded() {
-    final c = widget.controller;
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Trước',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Sau',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Tiến',
-                        icon: Icons.arrow_upward_rounded,
-                        type: ManualCommandType.travelFrontForward,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Lùi',
-                        icon: Icons.arrow_downward_rounded,
-                        type: ManualCommandType.travelFrontBackward,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Tiến',
-                        icon: Icons.arrow_upward_rounded,
-                        type: ManualCommandType.travelRearForward,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Lùi',
-                        icon: Icons.arrow_downward_rounded,
-                        type: ManualCommandType.travelRearBackward,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
 
 // ─── Steer Control ──────────────────────────────────────────────────────────
-class SteerControlBox extends StatefulWidget {
+class SteerControlBox extends StatelessWidget {
   const SteerControlBox({required this.controller, super.key});
   final OhtManualController controller;
   @override
-  State<SteerControlBox> createState() => _SteerControlBoxState();
-}
-
-class _SteerControlBoxState extends State<SteerControlBox> {
-  bool _expanded = false;
-  @override
   Widget build(BuildContext context) {
+    final c = controller;
     return _GroupBox(
       title: 'RẺ HƯỚNG',
       icon: Icons.turn_right_rounded,
-      trailing: _ExpandBtn(
-        expanded: _expanded,
-        onTap: () => setState(() => _expanded = !_expanded),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _UnifiedBtn(
+              label: 'Trái',
+              icon: Icons.turn_left_rounded,
+              blockReason: c.blockReasonForUnifiedSteer(left: true),
+              onTapDown: () => c.sendUnifiedSteer(left: true),
+              onTapUp: () => c.sendManualCommand(ManualCommandType.steerStop),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _UnifiedBtn(
+              label: 'Phải',
+              icon: Icons.turn_right_rounded,
+              blockReason: c.blockReasonForUnifiedSteer(left: false),
+              onTapDown: () => c.sendUnifiedSteer(left: false),
+              onTapUp: () => c.sendManualCommand(ManualCommandType.steerStop),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        ],
       ),
-      child: _expanded ? _buildExpanded() : _buildUnified(),
-    );
-  }
-
-  Widget _buildUnified() {
-    final c = widget.controller;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: _UnifiedBtn(
-            label: 'Trái',
-            icon: Icons.turn_left_rounded,
-            blockReason: c.blockReasonForUnifiedSteer(left: true),
-            onTapDown: () => c.sendUnifiedSteer(left: true),
-            onTapUp: () => c.sendManualCommand(ManualCommandType.steerStop),
-            width: double.infinity,
-            height: double.infinity,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _UnifiedBtn(
-            label: 'Phải',
-            icon: Icons.turn_right_rounded,
-            blockReason: c.blockReasonForUnifiedSteer(left: false),
-            onTapDown: () => c.sendUnifiedSteer(left: false),
-            onTapUp: () => c.sendManualCommand(ManualCommandType.steerStop),
-            width: double.infinity,
-            height: double.infinity,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExpanded() {
-    final c = widget.controller;
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Trục Trước',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Trục Sau',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Trái',
-                        icon: Icons.turn_left_rounded,
-                        type: ManualCommandType.steerFrontLeft,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Phải',
-                        icon: Icons.turn_right_rounded,
-                        type: ManualCommandType.steerFrontRight,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Trái',
-                        icon: Icons.turn_left_rounded,
-                        type: ManualCommandType.steerRearLeft,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Phải',
-                        icon: Icons.turn_right_rounded,
-                        type: ManualCommandType.steerRearRight,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
 
 // ─── Hoist Control ──────────────────────────────────────────────────────────
-class HoistControlBox extends StatefulWidget {
+class HoistControlBox extends StatelessWidget {
   const HoistControlBox({required this.controller, super.key});
   final OhtManualController controller;
   @override
-  State<HoistControlBox> createState() => _HoistControlBoxState();
-}
-
-class _HoistControlBoxState extends State<HoistControlBox> {
-  bool _expanded = false;
-  @override
   Widget build(BuildContext context) {
+    final c = controller;
     return _GroupBox(
       title: 'NÂNG HẠ',
       icon: Icons.open_in_full_rounded,
-      trailing: _ExpandBtn(
-        expanded: _expanded,
-        onTap: () => setState(() => _expanded = !_expanded),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _UnifiedBtn(
+                    label: 'Nâng',
+                    icon: Icons.vertical_align_top_rounded,
+                    blockReason: c.blockReasonForUnifiedHoist(up: true),
+                    onTapDown: () => c.sendUnifiedHoist(up: true),
+                    onTapUp: () =>
+                        c.sendManualCommand(ManualCommandType.hoistStop),
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: _UnifiedBtn(
+                    label: 'Hạ',
+                    icon: Icons.vertical_align_bottom_rounded,
+                    blockReason: c.blockReasonForUnifiedHoist(up: false),
+                    onTapDown: () => c.sendUnifiedHoist(up: false),
+                    onTapUp: () =>
+                        c.sendManualCommand(ManualCommandType.hoistStop),
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      child: _expanded ? _buildExpanded() : _buildUnified(),
-    );
-  }
-
-  Widget _buildUnified() {
-    final c = widget.controller;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _UnifiedBtn(
-                  label: 'Nâng',
-                  icon: Icons.vertical_align_top_rounded,
-                  blockReason: c.blockReasonForUnifiedHoist(up: true),
-                  onTapDown: () => c.sendUnifiedHoist(up: true),
-                  onTapUp: () =>
-                      c.sendManualCommand(ManualCommandType.hoistStop),
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: _UnifiedBtn(
-                  label: 'Hạ',
-                  icon: Icons.vertical_align_bottom_rounded,
-                  blockReason: c.blockReasonForUnifiedHoist(up: false),
-                  onTapDown: () => c.sendUnifiedHoist(up: false),
-                  onTapUp: () =>
-                      c.sendManualCommand(ManualCommandType.hoistStop),
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExpanded() {
-    final c = widget.controller;
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Hoist Trước',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Hoist Sau',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Nâng\nTrước',
-                        icon: Icons.vertical_align_top_rounded,
-                        type: ManualCommandType.hoistFrontUp,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Hạ\nTrước',
-                        icon: Icons.vertical_align_bottom_rounded,
-                        type: ManualCommandType.hoistFrontDown,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Nâng\nSau',
-                        icon: Icons.vertical_align_top_rounded,
-                        type: ManualCommandType.hoistRearUp,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: CmdBtn(
-                        label: 'Hạ\nSau',
-                        icon: Icons.vertical_align_bottom_rounded,
-                        type: ManualCommandType.hoistRearDown,
-                        controller: c,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

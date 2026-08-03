@@ -276,60 +276,50 @@ class OhtManualController {
 
   bool canSendCommand(ManualCommandType type) => blockReasonFor(type) == null;
 
-  /// Send both front and rear steer commands at once (unified mode).
+  /// Send unified steer command (OHT handles both front+rear motors).
   Future<void> sendUnifiedSteer({required bool left}) async {
-    final frontType = left
-        ? ManualCommandType.steerFrontLeft
-        : ManualCommandType.steerFrontRight;
-    final rearType = left
-        ? ManualCommandType.steerRearLeft
-        : ManualCommandType.steerRearRight;
-    await sendManualCommand(frontType);
-    await sendManualCommand(rearType);
+    await sendManualCommand(
+      left ? ManualCommandType.steerLeft : ManualCommandType.steerRight,
+    );
   }
 
-  /// Send both front and rear hoist commands at once (unified mode).
+  /// Send unified hoist command (OHT handles both front+rear motors).
   Future<void> sendUnifiedHoist({required bool up}) async {
-    final frontType = up
-        ? ManualCommandType.hoistFrontUp
-        : ManualCommandType.hoistFrontDown;
-    final rearType = up
-        ? ManualCommandType.hoistRearUp
-        : ManualCommandType.hoistRearDown;
-    await sendManualCommand(frontType);
-    await sendManualCommand(rearType);
+    await sendManualCommand(
+      up ? ManualCommandType.hoistUp : ManualCommandType.hoistDown,
+    );
   }
 
-  /// Block reason for unified steer (checks BOTH front & rear limits).
+  /// Block reason for unified steer — any limit on that side blocks.
   String? blockReasonForUnifiedSteer({required bool left}) {
     if (!isConnected) return 'OHT is not connected';
     if (emergencyStopActive) return 'Emergency stop is active';
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
     if (hasCriticalError) return 'Critical OHT error is active';
     if (left) {
-      if (_telemetry.sensors.steerFrontLeft == true &&
+      if (_telemetry.sensors.steerFrontLeft == true ||
           _telemetry.sensors.steerRearLeft == true) {
-        return 'Both steer left limits active';
+        return 'Steer left limit is active';
       }
     } else {
-      if (_telemetry.sensors.steerFrontRight == true &&
+      if (_telemetry.sensors.steerFrontRight == true ||
           _telemetry.sensors.steerRearRight == true) {
-        return 'Both steer right limits active';
+        return 'Steer right limit is active';
       }
     }
     return null;
   }
 
-  /// Block reason for unified hoist (checks BOTH front & rear limits).
+  /// Block reason for unified hoist — any upper limit blocks up.
   String? blockReasonForUnifiedHoist({required bool up}) {
     if (!isConnected) return 'OHT is not connected';
     if (emergencyStopActive) return 'Emergency stop is active';
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
     if (hasCriticalError) return 'Critical OHT error is active';
     if (up) {
-      if (_telemetry.sensors.hoistFrontUpperLimit == true &&
+      if (_telemetry.sensors.hoistFrontUpperLimit == true ||
           _telemetry.sensors.hoistRearUpperLimit == true) {
-        return 'Both hoist upper limits active';
+        return 'Hoist upper limit is active';
       }
     }
     return null;
@@ -349,35 +339,27 @@ class OhtManualController {
     if (type == ManualCommandType.setManualMode) return null;
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
     if (hasCriticalError) return 'Critical OHT error is active';
+    // Lidar danger only blocks travelForward, still allows travelBackward
     if (type == ManualCommandType.travelForward &&
         _telemetry.sensors.hasLidarDanger) {
       return 'Lidar danger zone blocks travel_forward';
     }
+    // Steer limit blocking
+    if (type == ManualCommandType.steerLeft &&
+        (_telemetry.sensors.steerFrontLeft == true ||
+            _telemetry.sensors.steerRearLeft == true)) {
+      return 'Steer left limit is active';
+    }
+    if (type == ManualCommandType.steerRight &&
+        (_telemetry.sensors.steerFrontRight == true ||
+            _telemetry.sensors.steerRearRight == true)) {
+      return 'Steer right limit is active';
+    }
     // Hoist upper limit blocking
-    if (type == ManualCommandType.hoistFrontUp &&
-        _telemetry.sensors.hoistFrontUpperLimit == true) {
-      return 'Front hoist upper limit is active';
-    }
-    if (type == ManualCommandType.hoistRearUp &&
-        _telemetry.sensors.hoistRearUpperLimit == true) {
-      return 'Rear hoist upper limit is active';
-    }
-    // Steering limit sensor blocking
-    if (type == ManualCommandType.steerFrontLeft &&
-        _telemetry.sensors.steerFrontLeft == true) {
-      return 'Steer front left limit is active';
-    }
-    if (type == ManualCommandType.steerFrontRight &&
-        _telemetry.sensors.steerFrontRight == true) {
-      return 'Steer front right limit is active';
-    }
-    if (type == ManualCommandType.steerRearLeft &&
-        _telemetry.sensors.steerRearLeft == true) {
-      return 'Steer rear left limit is active';
-    }
-    if (type == ManualCommandType.steerRearRight &&
-        _telemetry.sensors.steerRearRight == true) {
-      return 'Steer rear right limit is active';
+    if (type == ManualCommandType.hoistUp &&
+        (_telemetry.sensors.hoistFrontUpperLimit == true ||
+            _telemetry.sensors.hoistRearUpperLimit == true)) {
+      return 'Hoist upper limit is active';
     }
     return null;
   }
@@ -400,7 +382,7 @@ class OhtManualController {
       case CommunicationProtocol.mock:
         return MockOhtCommunicationService();
       case CommunicationProtocol.websocket:
-        return WebSocketOhtCommunicationService();
+        return WebSocketOhtCommunicationService.create();
       case CommunicationProtocol.mqtt:
         return MqttOhtCommunicationService();
     }
@@ -601,7 +583,7 @@ class OhtManualController {
         AlarmEvent.now(
           severity: EventSeverity.critical,
           message:
-              '$label danger zone. travel_forward is blocked; stop advised.',
+              '$label danger zone. travel_forward is blocked; reverse allowed.',
         ),
       );
     } else if (current == LidarZone.warning) {
@@ -623,7 +605,7 @@ class OhtManualController {
     _addEvent(
       AlarmEvent.now(
         severity: EventSeverity.warning,
-        message: '$label active. Up command is blocked.',
+        message: '$label active. Hoist up is blocked.',
       ),
     );
   }
@@ -671,8 +653,8 @@ class OhtManualController {
       await _service.sendCommand(
         ManualCommand(
           type: ManualCommandType.heartbeat,
-          target: 'system',
-          speed: 0,
+          target: _targetFor(ManualCommandType.heartbeat),
+          speed: _speedFor(ManualCommandType.heartbeat),
           requestId: _nextRequestId(),
           timestamp: DateTime.now(),
         ),
@@ -694,23 +676,16 @@ class OhtManualController {
     switch (type) {
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
         return true;
       case ManualCommandType.setManualMode:
       case ManualCommandType.travelStop:
       case ManualCommandType.steerStop:
       case ManualCommandType.hoistStop:
+      case ManualCommandType.stopAll:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
       case ManualCommandType.heartbeat:
@@ -723,24 +698,17 @@ class OhtManualController {
       case ManualCommandType.travelStop:
       case ManualCommandType.steerStop:
       case ManualCommandType.hoistStop:
+      case ManualCommandType.stopAll:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
         return true;
       case ManualCommandType.setManualMode:
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
       case ManualCommandType.heartbeat:
         return false;
     }
@@ -752,6 +720,7 @@ class OhtManualController {
       case ManualCommandType.travelStop:
       case ManualCommandType.steerStop:
       case ManualCommandType.hoistStop:
+      case ManualCommandType.stopAll:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
       case ManualCommandType.setManualMode:
@@ -759,49 +728,36 @@ class OhtManualController {
         return 0;
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
         return overriddenSpeed ?? _travelSpeed;
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
+        // Steer speed not used in command payload (OHT fixed jog), but keep for logging
         return overriddenSpeed ?? _steerSpeed;
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
         return overriddenSpeed ?? _hoistSpeed;
     }
   }
 
   String _targetFor(ManualCommandType type) {
     switch (type) {
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-        return 'front';
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
-        return 'rear';
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
       case ManualCommandType.travelStop:
+        return 'travel';
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
       case ManualCommandType.steerStop:
+        return 'steering';
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
       case ManualCommandType.hoistStop:
-        return 'both';
-      case ManualCommandType.setManualMode:
+        return 'hoist';
+      case ManualCommandType.stopAll:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
+        return 'system';
+      case ManualCommandType.setManualMode:
       case ManualCommandType.heartbeat:
         return 'system';
     }

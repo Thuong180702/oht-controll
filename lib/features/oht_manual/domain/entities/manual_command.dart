@@ -50,28 +50,22 @@ class ManualCommand {
         return 'mode_manual';
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
         return 'travel_set';
       case ManualCommandType.travelStop:
         return 'travel_stop';
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerRearLeft:
+      case ManualCommandType.steerLeft:
         return 'steer_left';
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearRight:
+      case ManualCommandType.steerRight:
         return 'steer_right';
       case ManualCommandType.steerStop:
         return 'steer_stop';
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
         return 'hoist_move';
       case ManualCommandType.hoistStop:
         return 'hoist_stop';
+      case ManualCommandType.stopAll:
+        return 'stop_all';
       case ManualCommandType.resetError:
         return 'reset_all_faults';
       case ManualCommandType.emergencyStop:
@@ -88,24 +82,18 @@ class ManualCommand {
         return null;
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
       case ManualCommandType.travelStop:
         return 'travel';
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
       case ManualCommandType.steerStop:
         return 'steering';
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
       case ManualCommandType.hoistStop:
         return 'hoist';
+      case ManualCommandType.stopAll:
+        return 'all';
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
         return 'all';
@@ -116,24 +104,17 @@ class ManualCommand {
     switch (type) {
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
         return 'mps';
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
-        return 'mm';
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
+        return 'rpm';
       case ManualCommandType.setManualMode:
       case ManualCommandType.travelStop:
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
       case ManualCommandType.steerStop:
       case ManualCommandType.hoistStop:
+      case ManualCommandType.stopAll:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
       case ManualCommandType.heartbeat:
@@ -144,27 +125,20 @@ class ManualCommand {
   double? get _firmwareValue {
     switch (type) {
       case ManualCommandType.travelForward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelRearForward:
         return _speedPercentToMps();
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearBackward:
         return -_speedPercentToMps();
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistRearUp:
-        return 0.0;
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearDown:
-        return speed.clamp(0, 100).toDouble();
+      case ManualCommandType.hoistUp:
+        return _speedPercentToRpm();
+      case ManualCommandType.hoistDown:
+        return -_speedPercentToRpm();
       case ManualCommandType.setManualMode:
       case ManualCommandType.travelStop:
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
       case ManualCommandType.steerStop:
       case ManualCommandType.hoistStop:
+      case ManualCommandType.stopAll:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
       case ManualCommandType.heartbeat:
@@ -176,23 +150,16 @@ class ManualCommand {
     switch (type) {
       case ManualCommandType.travelForward:
       case ManualCommandType.travelBackward:
-      case ManualCommandType.travelFrontForward:
-      case ManualCommandType.travelFrontBackward:
-      case ManualCommandType.travelRearForward:
-      case ManualCommandType.travelRearBackward:
-      case ManualCommandType.steerFrontLeft:
-      case ManualCommandType.steerFrontRight:
-      case ManualCommandType.steerRearLeft:
-      case ManualCommandType.steerRearRight:
-      case ManualCommandType.hoistFrontUp:
-      case ManualCommandType.hoistFrontDown:
-      case ManualCommandType.hoistRearUp:
-      case ManualCommandType.hoistRearDown:
+      case ManualCommandType.steerLeft:
+      case ManualCommandType.steerRight:
+      case ManualCommandType.hoistUp:
+      case ManualCommandType.hoistDown:
         return true;
       case ManualCommandType.setManualMode:
       case ManualCommandType.travelStop:
       case ManualCommandType.steerStop:
       case ManualCommandType.hoistStop:
+      case ManualCommandType.stopAll:
       case ManualCommandType.resetError:
       case ManualCommandType.emergencyStop:
       case ManualCommandType.heartbeat:
@@ -200,7 +167,13 @@ class ManualCommand {
     }
   }
 
+  /// Map 0..100% → 0.0..0.5 m/s
   double _speedPercentToMps() {
-    return speed.clamp(0, 100).toDouble() / 100.0;
+    return speed.clamp(0, 100).toDouble() / 100.0 * 0.5;
+  }
+
+  /// Map 0..100% → 0..1200 RPM
+  double _speedPercentToRpm() {
+    return speed.clamp(0, 100).toDouble() * 12.0;
   }
 }
