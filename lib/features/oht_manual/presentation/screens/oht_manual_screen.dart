@@ -3698,6 +3698,8 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
   @override
   void initState() {
     super.initState();
+    _currentPassword = AuthStorage.getPasswordSync();
+    _ready = true;
     _loadCurrentPassword();
   }
 
@@ -3714,7 +3716,6 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     if (!mounted) return;
     setState(() {
       _currentPassword = pwd;
-      _ready = true;
     });
   }
 
