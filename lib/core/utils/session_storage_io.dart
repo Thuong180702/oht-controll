@@ -12,11 +12,12 @@ class IoSessionStorage implements SessionStoragePlatform {
     final p = await SharedPreferences.getInstance();
     _prefs = p;
     // Cache known keys into RAM
-    for (const key in [
+    for (final key in const [
       'oht_logged_in_username',
       'oht_saved_screen',
       'oht_saved_protocol',
       'oht_saved_ws_url',
+      'oht_event_logs_persistent',
     ]) {
       final val = p.getString(key);
       if (val != null) _cache[key] = val;
