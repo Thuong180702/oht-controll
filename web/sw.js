@@ -1,7 +1,7 @@
 // Service Worker for OHT Control System (Offline-First PWA)
 // Modeled after clean cache-first architecture for full offline operation
 
-const CACHE_NAME = 'oht-pwa-v45';
+const CACHE_NAME = 'oht-pwa-v50';
 
 // Core assets to pre-cache on install
 const CORE_ASSETS = [

@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 
+import 'dart:async';
+
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_locale.dart';
 import 'core/utils/app_preferences.dart';
+import 'core/utils/auth_storage.dart';
 import 'features/oht_manual/presentation/controllers/oht_manual_controller.dart';
 import 'features/oht_manual/presentation/screens/connection_screen.dart';
 import 'features/oht_manual/presentation/screens/login_screen.dart';
@@ -30,6 +33,8 @@ class _OhtManualAppState extends State<OhtManualApp> {
   ThemeMode _themeMode = AppPreferences.defaultThemeMode;
   bool _prefsLoaded = false;
 
+  Timer? _sessionCheckTimer;
+
   @override
   void initState() {
     super.initState();
@@ -51,10 +56,16 @@ class _OhtManualAppState extends State<OhtManualApp> {
     _prefsLoaded = true;
 
     _loadAsyncPreferences();
+
+    // Periodic background session check (every 10 seconds) for real-time cross-device logout
+    _sessionCheckTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _checkLiveSession();
+    });
   }
 
   @override
   void dispose() {
+    _sessionCheckTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -114,6 +125,26 @@ class _OhtManualAppState extends State<OhtManualApp> {
       _languageCode = languageCode;
       _themeMode = themeMode;
     });
+
+    await _checkLiveSession();
+  }
+
+  Future<void> _checkLiveSession() async {
+    if (_screen == _AppScreen.login || !mounted) return;
+    final isValid = await AuthStorage.isSessionValid();
+    if (!isValid && mounted && _screen != _AppScreen.login) {
+      final messenger = ScaffoldMessenger.of(context);
+      await _onLogout();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocale.t('Mật khẩu đã bị thay đổi từ thiết bị khác. Vui lòng đăng nhập lại.'),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _setLanguageCode(String languageCode) async {

@@ -177,6 +177,8 @@ class AppLocale {
         'Disconnect to return to the protocol configuration screen.',
     'Đăng xuất khỏi tài khoản hệ thống.':
         'Logout of system account.',
+    'Mật khẩu đã bị thay đổi từ thiết bị khác. Vui lòng đăng nhập lại.':
+        'Password changed from another device. Please log in again.',
     'HỦY BỎ THAY ĐỔI': 'CANCEL CHANGES',
     'ÁP DỤNG CẤU HÌNH': 'APPLY CONFIGURATION',
   };

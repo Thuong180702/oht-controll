@@ -44,6 +44,22 @@ class AuthStorage {
     return defaultPassword;
   }
 
+  /// Validates whether the active local session password matches the live Cloudflare KV password.
+  /// If online and password changed on Cloudflare KV from another device, returns false.
+  static Future<bool> isSessionValid() async {
+    final localPassword = SessionStorage.getItem(_passwordKey) ?? defaultPassword;
+    final remotePassword =
+        await AuthCloudService.fetchRemotePassword(username: defaultUsername);
+
+    if (remotePassword != null && remotePassword.isNotEmpty) {
+      if (remotePassword != localPassword) {
+        // Remote password has been changed from another device!
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// Change password: Requires online connection to sync with Cloudflare KV.
   static Future<({bool success, String message})> changePassword({
     required String oldPassword,
