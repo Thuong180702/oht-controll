@@ -5,6 +5,7 @@ class AuthStorage {
   static const defaultUsername = 'Thaco';
   static const defaultPassword = 'Thaco@1234';
   static const _passwordKey = 'admin_password';
+  static const _activeSessionPasswordKey = 'active_session_password';
 
   /// Seeds local password and background syncs with Cloudflare KV.
   static Future<void> ensureSeeded() async {
@@ -33,6 +34,12 @@ class AuthStorage {
     return defaultPassword;
   }
 
+  /// Called after successful login to record the active session password.
+  static Future<void> saveActiveSessionPassword(String password) async {
+    await SessionStorage.setItem(_activeSessionPasswordKey, password);
+    await SessionStorage.setItem(_passwordKey, password);
+  }
+
   static Future<String> getPassword() => getPasswordForLogin();
 
   /// Synchronous instant password getter for offline display/cache
@@ -47,13 +54,16 @@ class AuthStorage {
   /// Validates whether the active local session password matches the live Cloudflare KV password.
   /// If online and password changed on Cloudflare KV from another device, returns false.
   static Future<bool> isSessionValid() async {
-    final localPassword = SessionStorage.getItem(_passwordKey) ?? defaultPassword;
+    final activePassword = SessionStorage.getItem(_activeSessionPasswordKey) ??
+        SessionStorage.getItem(_passwordKey) ??
+        defaultPassword;
+
     final remotePassword =
         await AuthCloudService.fetchRemotePassword(username: defaultUsername);
 
     if (remotePassword != null && remotePassword.isNotEmpty) {
-      if (remotePassword != localPassword) {
-        // Remote password has been changed from another device!
+      if (remotePassword != activePassword) {
+        // Remote password on Cloudflare KV was changed from another device!
         return false;
       }
     }
@@ -73,6 +83,7 @@ class AuthStorage {
 
     if (result.success) {
       await SessionStorage.setItem(_passwordKey, newPassword);
+      await SessionStorage.setItem(_activeSessionPasswordKey, newPassword);
     }
     return result;
   }

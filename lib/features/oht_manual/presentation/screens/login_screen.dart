@@ -76,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    await AuthStorage.saveActiveSessionPassword(password);
     if (mounted) widget.onLogin(username);
   }
 

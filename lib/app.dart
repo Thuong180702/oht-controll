@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'core/utils/app_locale.dart';
 import 'core/utils/app_preferences.dart';
 import 'core/utils/auth_storage.dart';
+import 'core/utils/session_storage.dart';
 import 'features/oht_manual/presentation/controllers/oht_manual_controller.dart';
 import 'features/oht_manual/presentation/screens/connection_screen.dart';
 import 'features/oht_manual/presentation/screens/login_screen.dart';
@@ -95,6 +96,7 @@ class _OhtManualAppState extends State<OhtManualApp> {
 
   Future<void> _onLogout() async {
     await _controller.disconnect();
+    await SessionStorage.removeItem('active_session_password');
     setState(() {
       _username = '';
       _screen = _AppScreen.login;

@@ -1,7 +1,7 @@
 // Service Worker for OHT Control System (Offline-First PWA)
 // Modeled after clean cache-first architecture for full offline operation
 
-const CACHE_NAME = 'oht-pwa-v55';
+const CACHE_NAME = 'oht-pwa-v60';
 
 // Core assets to pre-cache on install
 const CORE_ASSETS = [
@@ -63,8 +63,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = event.request.url;
 
-  // Never intercept WebSockets
-  if (url.startsWith('ws://') || url.startsWith('wss://')) return;
+  // Never intercept WebSockets or API calls
+  if (url.startsWith('ws://') || url.startsWith('wss://') || url.includes('/api/')) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
