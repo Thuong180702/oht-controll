@@ -2,15 +2,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-import 'session_storage.dart';
-
 class AuthCloudService {
   AuthCloudService._();
 
   static const String _defaultEndpoint =
       'https://robot-controller-remote.pages.dev/api/auth/password';
 
-  /// Synchronize password from Cloudflare KV.
+  /// Synchronize password from Cloudflare KV. Does NOT mutate local storage.
   static Future<String?> fetchRemotePassword({String username = 'Thaco'}) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -30,7 +28,6 @@ class AuthCloudService {
         if (data['success'] == true && data['password'] != null) {
           final remotePassword = data['password'] as String;
           if (remotePassword.isNotEmpty) {
-            await SessionStorage.setItem('admin_password', remotePassword);
             return remotePassword;
           }
         }
@@ -65,7 +62,6 @@ class AuthCloudService {
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200 && data['success'] == true) {
-        await SessionStorage.setItem('admin_password', newPassword);
         return (
           success: true,
           message: 'Đã cập nhật và đồng bộ mật khẩu lên hệ thống.',

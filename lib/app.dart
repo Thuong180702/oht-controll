@@ -57,8 +57,8 @@ class _OhtManualAppState extends State<OhtManualApp> {
 
     _loadAsyncPreferences();
 
-    // Periodic background session check (every 10 seconds) for real-time cross-device logout
-    _sessionCheckTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    // Periodic background session check (every 5 seconds) for real-time cross-device logout
+    _sessionCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _checkLiveSession();
     });
   }
