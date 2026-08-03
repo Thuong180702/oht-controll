@@ -3751,7 +3751,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     });
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    await AuthStorage.setPassword(newPwd);
+    await AuthStorage.setPassword(newPwd, oldPassword: oldPwd);
     if (!mounted) return;
     navigator.pop();
     messenger.showSnackBar(

@@ -26,7 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
   bool _authReady = false;
-  String _storedPassword = AuthStorage.defaultPassword;
 
   @override
   void initState() {
@@ -45,10 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loadAuth() async {
     await AuthStorage.ensureSeeded();
-    final pwd = await AuthStorage.getPassword();
     if (!mounted) return;
     setState(() {
-      _storedPassword = pwd;
       _authReady = true;
     });
   }
@@ -70,8 +67,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final username = _usernameCtrl.text.trim();
     final password = _passwordCtrl.text;
+    final storedPassword = await AuthStorage.getPassword();
     if (username != AuthStorage.defaultUsername ||
-        password != _storedPassword) {
+        password != storedPassword) {
       if (!mounted) return;
       setState(() => _loading = false);
       _showAuthError();

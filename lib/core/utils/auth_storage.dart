@@ -1,29 +1,41 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'auth_cloud_service.dart';
+import 'session_storage.dart';
 
 class AuthStorage {
   static const defaultUsername = 'Thaco';
   static const defaultPassword = 'Thaco@1234';
   static const _passwordKey = 'admin_password';
 
-  /// Seeds the default password on first run.
-  // TODO: Migrate to flutter_secure_storage for production builds.
-  // ponytail: SharedPreferences stores plaintext — acceptable for factory floor
-  // tablets behind firewall, but upgrade to flutter_secure_storage before
-  // deploying to unmanaged devices.
+  /// Seeds local password and fetches latest remote password from Cloudflare KV in background.
   static Future<void> ensureSeeded() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!prefs.containsKey(_passwordKey)) {
-      await prefs.setString(_passwordKey, defaultPassword);
+    final existing = SessionStorage.getItem(_passwordKey);
+    if (existing == null || existing.isEmpty) {
+      await SessionStorage.setItem(_passwordKey, defaultPassword);
     }
+    // Trigger background sync with Cloudflare KV
+    AuthCloudService.fetchRemotePassword(username: defaultUsername);
   }
 
   static Future<String> getPassword() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_passwordKey) ?? defaultPassword;
+    final stored = SessionStorage.getItem(_passwordKey);
+    // Background refresh from Cloudflare
+    AuthCloudService.fetchRemotePassword(username: defaultUsername);
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
+    return defaultPassword;
   }
 
-  static Future<void> setPassword(String newPassword) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_passwordKey, newPassword);
+  static Future<bool> setPassword(String newPassword, {String? oldPassword}) async {
+    final currentLocal = SessionStorage.getItem(_passwordKey) ?? defaultPassword;
+    await SessionStorage.setItem(_passwordKey, newPassword);
+
+    // Push to Cloudflare KV so all other devices receive the updated password instantly
+    final synced = await AuthCloudService.pushRemotePassword(
+      username: defaultUsername,
+      oldPassword: oldPassword ?? currentLocal,
+      newPassword: newPassword,
+    );
+    return synced;
   }
 }
