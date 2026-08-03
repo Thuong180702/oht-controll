@@ -46,6 +46,20 @@ jobs:
           self.addEventListener('activate', () => self.clients.claim());
           EOF
 
+      - name: Verify Secret Config
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+        run: |
+          echo "Checking GitHub Secrets format..."
+          echo "Account ID Length: ${#CLOUDFLARE_ACCOUNT_ID} characters"
+          echo "API Token Length: ${#CLOUDFLARE_API_TOKEN} characters"
+          echo "Project Name Length: ${#CLOUDFLARE_PROJECT_NAME} characters"
+          if [ ${#CLOUDFLARE_ACCOUNT_ID} -ne 32 ]; then
+            echo "::warning::CLOUDFLARE_ACCOUNT_ID is usually exactly 32 characters long. Current length is ${#CLOUDFLARE_ACCOUNT_ID}."
+          fi
+
       - name: Create Cloudflare Pages Project & Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
