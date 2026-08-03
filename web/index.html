@@ -15,8 +15,8 @@
       navigator.serviceWorker.register = function(url, options) {
         const urlStr = String(url);
         if (urlStr.includes('flutter_service_worker.js')) {
-          console.log('[PWA] Redirected flutter_service_worker.js registration to ./sw.js?v=40');
-          return _origRegister('./sw.js?v=40', options);
+          console.log('[PWA] Redirected flutter_service_worker.js registration to ./sw.js?v=45');
+          return _origRegister('./sw.js?v=45', options);
         }
         return _origRegister(url, options);
       };
@@ -139,7 +139,7 @@
               await reg.unregister();
             }
           }
-          const reg = await navigator.serviceWorker.register('./sw.js?v=40', { scope: './' });
+          const reg = await navigator.serviceWorker.register('./sw.js?v=45', { scope: './' });
           console.log('[PWA] Service Worker active & ready:', reg.scope);
         } catch (err) {
           console.warn('[PWA] SW registration notice:', err);

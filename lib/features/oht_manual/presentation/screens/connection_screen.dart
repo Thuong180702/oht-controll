@@ -157,9 +157,20 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                 );
                 if (mounted) setState(() {});
               },
-              onExit: widget.onLogout,
-              exitLabel: AppLocale.t('Đăng xuất'),
-              exitIcon: Icons.logout_rounded,
+              onExit: () async {
+                if (widget.controller.isConnected) {
+                  await widget.controller.disconnect();
+                  if (mounted) setState(() {});
+                } else {
+                  widget.onLogout();
+                }
+              },
+              exitLabel: widget.controller.isConnected
+                  ? AppLocale.t('Ngắt kết nối')
+                  : AppLocale.t('Đăng xuất'),
+              exitIcon: widget.controller.isConnected
+                  ? Icons.link_off_rounded
+                  : Icons.logout_rounded,
             ),
             Expanded(
               child: LayoutBuilder(
