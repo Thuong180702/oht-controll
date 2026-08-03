@@ -15,6 +15,7 @@ import '../../domain/entities/connection_status.dart';
 import '../../domain/entities/manual_command.dart';
 import '../../domain/entities/oht_telemetry.dart';
 import '../../domain/repositories/oht_communication_service.dart';
+import '../../../../core/utils/event_log_storage.dart';
 
 /// Controller for OHT manual mode.
 ///
@@ -35,7 +36,8 @@ class OhtManualController {
     _watchdog = Timer.periodic(const Duration(milliseconds: 500), (_) {
       _checkTelemetryTimeout();
     });
-    if (service == null) {
+    _loadEventsFromStorage();
+    if (service == null && _events.isEmpty) {
       _addEvent(
         AlarmEvent.now(
           severity: EventSeverity.info,
@@ -328,6 +330,7 @@ class OhtManualController {
   /// Clear all events.
   void clearEvents() {
     _events.clear();
+    EventLogStorage.clearEvents();
     _bump();
   }
 
@@ -610,12 +613,31 @@ class OhtManualController {
     );
   }
 
+  Timer? _saveLogTimer;
+
+  void _loadEventsFromStorage() {
+    try {
+      final saved = EventLogStorage.loadEvents();
+      if (saved.isNotEmpty) {
+        _events.addAll(saved);
+      }
+    } catch (_) {}
+  }
+
+  void _persistEvents() {
+    _saveLogTimer?.cancel();
+    _saveLogTimer = Timer(const Duration(milliseconds: 400), () {
+      EventLogStorage.saveEvents(_events);
+    });
+  }
+
   void _addEvent(AlarmEvent event) {
     _events.insert(0, event);
     if (_events.length > AppConstants.maxEventLogItems) {
       _events.removeRange(AppConstants.maxEventLogItems, _events.length);
     }
     _bump();
+    _persistEvents();
   }
 
   String _nextRequestId() {

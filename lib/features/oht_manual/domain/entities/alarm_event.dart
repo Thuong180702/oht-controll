@@ -25,4 +25,25 @@ class AlarmEvent {
       timestamp: now,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'severity': severity.name,
+        'message': message,
+        'timestamp': timestamp.toIso8601String(),
+      };
+
+  factory AlarmEvent.fromJson(Map<String, dynamic> json) {
+    return AlarmEvent(
+      id: json['id'] as String? ?? 'evt_${DateTime.now().microsecondsSinceEpoch}',
+      severity: EventSeverity.values.firstWhere(
+        (e) => e.name == json['severity'],
+        orElse: () => EventSeverity.info,
+      ),
+      message: json['message'] as String? ?? '',
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
 }

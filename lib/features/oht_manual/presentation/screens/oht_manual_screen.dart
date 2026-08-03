@@ -2372,6 +2372,8 @@ class _LogsPanel extends StatefulWidget {
 class _LogsPanelState extends State<_LogsPanel> {
   _LogSeverityFilter _filter = _LogSeverityFilter.all;
   String _search = '';
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   bool _matchesFilter(EventSeverity severity) {
     return switch (_filter) {
@@ -2389,13 +2391,53 @@ class _LogsPanelState extends State<_LogsPanel> {
     return message.toLowerCase().contains(query);
   }
 
+  bool _matchesDateRange(DateTime timestamp) {
+    if (_startDate != null) {
+      final startOfDay = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
+      if (timestamp.isBefore(startOfDay)) return false;
+    }
+    if (_endDate != null) {
+      final endOfDay = DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59, 999);
+      if (timestamp.isAfter(endOfDay)) return false;
+    }
+    return true;
+  }
+
+  Future<void> _selectStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: AppLocale.t('Chọn từ ngày'),
+    );
+    if (picked != null) {
+      setState(() => _startDate = picked);
+    }
+  }
+
+  Future<void> _selectEndDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: AppLocale.t('Chọn đến ngày'),
+    );
+    if (picked != null) {
+      setState(() => _endDate = picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final events = widget.controller.events;
     final visibleEvents = events
         .where(
           (event) =>
-              _matchesFilter(event.severity) && _matchesSearch(event.message),
+              _matchesFilter(event.severity) &&
+              _matchesSearch(event.message) &&
+              _matchesDateRange(event.timestamp),
         )
         .toList();
     Future<void> downloadLog() async {
@@ -2436,8 +2478,16 @@ class _LogsPanelState extends State<_LogsPanel> {
           const SizedBox(height: 14),
           _LogsToolbar(
             activeFilter: _filter,
+            startDate: _startDate,
+            endDate: _endDate,
             onFilterChanged: (filter) => setState(() => _filter = filter),
             onSearchChanged: (value) => setState(() => _search = value),
+            onSelectStartDate: _selectStartDate,
+            onSelectEndDate: _selectEndDate,
+            onClearDateFilter: () => setState(() {
+              _startDate = null;
+              _endDate = null;
+            }),
             onDownload: downloadLog,
           ),
           const SizedBox(height: 14),
@@ -2482,12 +2532,12 @@ class _LogsPanelState extends State<_LogsPanel> {
                               final itemRow = Row(
                                 children: [
                                   SizedBox(
-                                    width: 86,
+                                    width: 135,
                                     child: Text(
-                                      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}',
+                                      '${time.day.toString().padLeft(2, '0')}/${time.month.toString().padLeft(2, '0')}/${time.year} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}',
                                       style: TextStyle(
                                         color: AppColors.textHint,
-                                        fontSize: 11,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -2551,18 +2601,77 @@ class _LogsPanelState extends State<_LogsPanel> {
 class _LogsToolbar extends StatelessWidget {
   const _LogsToolbar({
     required this.activeFilter,
+    required this.startDate,
+    required this.endDate,
     required this.onFilterChanged,
     required this.onSearchChanged,
+    required this.onSelectStartDate,
+    required this.onSelectEndDate,
+    required this.onClearDateFilter,
     required this.onDownload,
   });
 
   final _LogSeverityFilter activeFilter;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final ValueChanged<_LogSeverityFilter> onFilterChanged;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onSelectStartDate;
+  final VoidCallback onSelectEndDate;
+  final VoidCallback onClearDateFilter;
   final Future<void> Function() onDownload;
+
+  String _formatDateLabel(DateTime? dt, String defaultLabel) {
+    if (dt == null) return defaultLabel;
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final hasDateFilter = startDate != null || endDate != null;
+
+    final dateButtons = [
+      OutlinedButton.icon(
+        onPressed: onSelectStartDate,
+        icon: Icon(
+          Icons.calendar_today_rounded,
+          size: 14,
+          color: startDate != null ? AppColors.primary : AppColors.textSecondary,
+        ),
+        label: Text(
+          'Từ: ${_formatDateLabel(startDate, 'Chọn ngày')}',
+          style: TextStyle(
+            fontSize: 11,
+            color: startDate != null ? AppColors.primary : AppColors.textSecondary,
+            fontWeight: startDate != null ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+      OutlinedButton.icon(
+        onPressed: onSelectEndDate,
+        icon: Icon(
+          Icons.event_rounded,
+          size: 14,
+          color: endDate != null ? AppColors.primary : AppColors.textSecondary,
+        ),
+        label: Text(
+          'Đến: ${_formatDateLabel(endDate, 'Chọn ngày')}',
+          style: TextStyle(
+            fontSize: 11,
+            color: endDate != null ? AppColors.primary : AppColors.textSecondary,
+            fontWeight: endDate != null ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+      if (hasDateFilter)
+        IconButton(
+          onPressed: onClearDateFilter,
+          tooltip: AppLocale.t('Xóa lọc ngày'),
+          icon: const Icon(Icons.clear_rounded, size: 16),
+          color: AppColors.error,
+        ),
+    ];
+
     return Container(
       key: const Key('logs_toolbar'),
       padding: const EdgeInsets.all(12),
@@ -2573,7 +2682,7 @@ class _LogsToolbar extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 850) {
+          if (constraints.maxWidth < 980) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -2604,6 +2713,7 @@ class _LogsToolbar extends StatelessWidget {
                         active: filter == activeFilter,
                         onTap: () => onFilterChanged(filter),
                       ),
+                    ...dateButtons,
                     OutlinedButton.icon(
                       key: const Key('logs_download_button'),
                       onPressed: onDownload,
@@ -2619,7 +2729,7 @@ class _LogsToolbar extends StatelessWidget {
           return Row(
             children: [
               SizedBox(
-                width: 260,
+                width: 220,
                 child: TextField(
                   key: const Key('logs_search_field'),
                   onChanged: onSearchChanged,
@@ -2636,13 +2746,17 @@ class _LogsToolbar extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              for (final filter in _LogSeverityFilter.values)
+              const SizedBox(width: 8),
+              for (final filter in _LogSeverityFilter.values) ...[
                 _LogsFilterButton(
                   filter: filter,
                   active: filter == activeFilter,
                   onTap: () => onFilterChanged(filter),
                 ),
+                const SizedBox(width: 4),
+              ],
+              const SizedBox(width: 8),
+              ...dateButtons,
               const Spacer(),
               OutlinedButton.icon(
                 key: const Key('logs_download_button'),
