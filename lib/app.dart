@@ -27,6 +27,8 @@ class OhtManualApp extends StatefulWidget {
 
 class _OhtManualAppState extends State<OhtManualApp> {
   late final OhtManualController _controller;
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
   _AppScreen _screen = _AppScreen.login;
   IndustrialTopBarItem _activeMainTab = IndustrialTopBarItem.dashboard;
   String _username = '';
@@ -133,19 +135,21 @@ class _OhtManualAppState extends State<OhtManualApp> {
 
   Future<void> _checkLiveSession() async {
     if (_screen == _AppScreen.login || !mounted) return;
-    final isValid = await AuthStorage.isSessionValid();
-    if (!isValid && mounted && _screen != _AppScreen.login) {
-      final messenger = ScaffoldMessenger.of(context);
-      await _onLogout();
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocale.t('Mật khẩu đã bị thay đổi từ thiết bị khác. Vui lòng đăng nhập lại.'),
+    try {
+      final isValid = await AuthStorage.isSessionValid();
+      if (!isValid && mounted && _screen != _AppScreen.login) {
+        await _onLogout();
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocale.t('Mật khẩu đã bị thay đổi từ thiết bị khác. Vui lòng đăng nhập lại.'),
+            ),
+            behavior: SnackBarBehavior.floating,
           ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      debugPrint('[SessionCheck] Error checking live session: $e');
     }
   }
 
@@ -201,6 +205,7 @@ class _OhtManualAppState extends State<OhtManualApp> {
     AppColors.setDarkMode(_themeMode == ThemeMode.dark);
     AppLocale.setLanguage(_languageCode);
     return MaterialApp(
+      scaffoldMessengerKey: _scaffoldMessengerKey,
       title: 'OHT Control System',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
