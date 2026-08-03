@@ -13,8 +13,17 @@ class AuthCloudService {
   /// Synchronize password from Cloudflare KV in the background.
   static Future<String?> fetchRemotePassword({String username = 'Thaco'}) async {
     try {
-      final uri = Uri.parse('$_defaultEndpoint?username=$username');
-      final response = await http.get(uri).timeout(const Duration(seconds: 4));
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final uri = Uri.parse('$_defaultEndpoint?username=$username&_t=$timestamp');
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+            },
+          )
+          .timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         if (data['success'] == true && data['password'] != null) {

@@ -6,20 +6,26 @@ class AuthStorage {
   static const defaultPassword = 'Thaco@1234';
   static const _passwordKey = 'admin_password';
 
-  /// Seeds local password and fetches latest remote password from Cloudflare KV in background.
+  /// Seeds local password and fetches latest remote password from Cloudflare KV.
   static Future<void> ensureSeeded() async {
     final existing = SessionStorage.getItem(_passwordKey);
     if (existing == null || existing.isEmpty) {
       await SessionStorage.setItem(_passwordKey, defaultPassword);
     }
-    // Trigger background sync with Cloudflare KV
-    AuthCloudService.fetchRemotePassword(username: defaultUsername);
+    // Await live password sync from Cloudflare KV
+    await AuthCloudService.fetchRemotePassword(username: defaultUsername);
   }
 
   static Future<String> getPassword() async {
+    // 1. Await live remote password from Cloudflare KV
+    final remotePassword =
+        await AuthCloudService.fetchRemotePassword(username: defaultUsername);
+    if (remotePassword != null && remotePassword.isNotEmpty) {
+      return remotePassword;
+    }
+
+    // 2. Fallback to local session storage if offline
     final stored = SessionStorage.getItem(_passwordKey);
-    // Background refresh from Cloudflare
-    AuthCloudService.fetchRemotePassword(username: defaultUsername);
     if (stored != null && stored.isNotEmpty) {
       return stored;
     }
