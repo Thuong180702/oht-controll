@@ -12,6 +12,7 @@ import 'package:flutter_application_1/core/enums/oht_mode.dart';
 import 'package:flutter_application_1/features/oht_manual/domain/entities/alarm_event.dart';
 import 'package:flutter_application_1/features/oht_manual/domain/entities/connection_status.dart';
 import 'package:flutter_application_1/features/oht_manual/domain/entities/manual_command.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_1/features/oht_manual/domain/entities/motor_status.dart';
 import 'package:flutter_application_1/features/oht_manual/domain/entities/oht_telemetry.dart';
 import 'package:flutter_application_1/features/oht_manual/domain/entities/sensor_status.dart';
@@ -19,6 +20,8 @@ import 'package:flutter_application_1/features/oht_manual/domain/repositories/oh
 import 'package:flutter_application_1/features/oht_manual/presentation/controllers/oht_manual_controller.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
   ManualCommand command(ManualCommandType type, {int speed = 30}) {
     return ManualCommand(
       type: type,

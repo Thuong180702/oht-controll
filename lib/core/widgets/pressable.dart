@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class Pressable extends StatefulWidget {
   const Pressable({
@@ -47,6 +48,7 @@ class _PressableState extends State<Pressable> {
     if (!_enabled || _activePointer != null) return;
     _activePointer = event.pointer;
     _setPressed(true);
+    HapticFeedback.lightImpact();
     widget.onPressStart?.call();
   }
 

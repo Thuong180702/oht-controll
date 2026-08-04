@@ -215,7 +215,9 @@ class _OhtManualAppState extends State<OhtManualApp> {
       builder: (context, child) {
         return _AndroidWindowsViewport(
           enabled: widget.forceAndroidViewport ??
-              (!kIsWeb && defaultTargetPlatform == TargetPlatform.android),
+              (!kIsWeb &&
+                  (defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS)),
           child: child ?? const SizedBox.shrink(),
         );
       },

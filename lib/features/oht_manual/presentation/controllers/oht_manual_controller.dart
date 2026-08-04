@@ -371,6 +371,7 @@ class OhtManualController {
     if (_disposed) return;
     _disposed = true;
     _watchdog?.cancel();
+    _saveLogTimer?.cancel();
     _stopDeadmanHeartbeat();
     _telemetrySubscription?.cancel();
     _statusSubscription?.cancel();

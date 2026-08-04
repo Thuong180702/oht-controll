@@ -8,13 +8,14 @@ class IoSessionStorage implements SessionStoragePlatform {
   final Map<String, String> _cache = {};
 
   Future<SharedPreferences> _getPrefs() async {
-    if (_prefs != null) return _prefs!;
     final p = await SharedPreferences.getInstance();
-    _prefs = p;
-    // Cache all existing SharedPreferences keys into RAM
-    for (final key in p.getKeys()) {
-      final val = p.getString(key);
-      if (val != null) _cache[key] = val;
+    if (_prefs != p) {
+      _prefs = p;
+      _cache.clear();
+      for (final key in p.getKeys()) {
+        final val = p.getString(key);
+        if (val != null) _cache[key] = val;
+      }
     }
     return p;
   }

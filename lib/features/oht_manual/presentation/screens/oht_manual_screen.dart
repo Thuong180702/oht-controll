@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/oht_ids.dart';
 import '../../../../core/enums/connection_phase.dart';
 import '../../../../core/enums/event_severity.dart';
@@ -107,65 +108,139 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
     );
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: EmergencyAlertFrame(
-        active: esActive || ctrl.hasCriticalError,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ─── Top Bar ───
-            IndustrialTopBar(
-              activeItem: widget.activeItem,
-              username: widget.username,
-              languageCode: widget.languageCode,
-              statusLabel: connectionLabel,
-              statusColor: connectionColor,
-              emergencyActive: esActive,
-              onItemSelected: widget.onTopNavSelected,
-              onEmergencyPressed: () {
-                ctrl.sendManualCommand(ManualCommandType.emergencyStop);
-                if (mounted) setState(() {});
-              },
-              onUserTap: _showChangePasswordPanel,
-              onExit: () {
-                if (ctrl.isConnected) {
-                  widget.onDisconnect();
-                } else {
-                  widget.onLogout();
-                }
-              },
-              exitLabel: ctrl.isConnected
-                  ? AppLocale.t('Ngắt kết nối')
-                  : AppLocale.t('Đăng xuất'),
-              exitIcon: ctrl.isConnected
-                  ? Icons.link_off_rounded
-                  : Icons.logout_rounded,
-            ),
-            // ─── Body ───
-            Expanded(
-              child: switch (widget.activeItem) {
-                IndustrialTopBarItem.dashboard => _DashboardPanel(
-                  controller: ctrl,
-                  onSpeedTap: _showSpeedPanel,
-                ),
-                IndustrialTopBarItem.diagnostics => _ResponsiveDiagnosticsPanel(
-                  controller: ctrl,
-                ),
-                IndustrialTopBarItem.logs => _LogsPanel(controller: ctrl),
-                IndustrialTopBarItem.settings => _SettingsPanel(
-                  controller: ctrl,
+      body: CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.space): () {
+            ctrl.sendManualCommand(ManualCommandType.emergencyStop);
+            if (mounted) setState(() {});
+          },
+          const SingleActivator(LogicalKeyboardKey.escape): () {
+            ctrl.sendManualCommand(ManualCommandType.emergencyStop);
+            if (mounted) setState(() {});
+          },
+          const SingleActivator(LogicalKeyboardKey.keyW): () {
+            if (ctrl.blockReasonFor(ManualCommandType.hoistUp) == null) {
+              ctrl.sendManualCommand(ManualCommandType.hoistUp);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.arrowUp): () {
+            if (ctrl.blockReasonFor(ManualCommandType.hoistUp) == null) {
+              ctrl.sendManualCommand(ManualCommandType.hoistUp);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.keyS): () {
+            if (ctrl.blockReasonFor(ManualCommandType.hoistDown) == null) {
+              ctrl.sendManualCommand(ManualCommandType.hoistDown);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.arrowDown): () {
+            if (ctrl.blockReasonFor(ManualCommandType.hoistDown) == null) {
+              ctrl.sendManualCommand(ManualCommandType.hoistDown);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.keyA): () {
+            if (ctrl.blockReasonForUnifiedSteer(left: true) == null) {
+              ctrl.sendUnifiedSteer(left: true);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.arrowLeft): () {
+            if (ctrl.blockReasonForUnifiedSteer(left: true) == null) {
+              ctrl.sendUnifiedSteer(left: true);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.keyD): () {
+            if (ctrl.blockReasonForUnifiedSteer(left: false) == null) {
+              ctrl.sendUnifiedSteer(left: false);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.arrowRight): () {
+            if (ctrl.blockReasonForUnifiedSteer(left: false) == null) {
+              ctrl.sendUnifiedSteer(left: false);
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.dashboard);
+          },
+          const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.diagnostics);
+          },
+          const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.logs);
+          },
+          const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.settings);
+          },
+          const SingleActivator(LogicalKeyboardKey.keyL, meta: true): () {
+            if (ctrl.isConnected) {
+              widget.onDisconnect();
+            } else {
+              widget.onLogout();
+            }
+          },
+        },
+        child: Focus(
+          autofocus: true,
+          child: EmergencyAlertFrame(
+            active: esActive || ctrl.hasCriticalError,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ─── Top Bar ───
+                IndustrialTopBar(
+                  activeItem: widget.activeItem,
                   username: widget.username,
                   languageCode: widget.languageCode,
-                  themeMode: widget.themeMode,
-                  onLanguageChanged: widget.onLanguageChanged,
-                  onThemeModeChanged: widget.onThemeModeChanged,
-                  onChangePassword: _showChangePasswordPanel,
-                  onDisconnect: widget.onDisconnect,
-                  onLogout: widget.onLogout,
+                  statusLabel: connectionLabel,
+                  statusColor: connectionColor,
+                  emergencyActive: esActive,
+                  onItemSelected: widget.onTopNavSelected,
+                  onEmergencyPressed: () {
+                    ctrl.sendManualCommand(ManualCommandType.emergencyStop);
+                    if (mounted) setState(() {});
+                  },
+                  onUserTap: _showChangePasswordPanel,
+                  onExit: () {
+                    if (ctrl.isConnected) {
+                      widget.onDisconnect();
+                    } else {
+                      widget.onLogout();
+                    }
+                  },
+                  exitLabel: ctrl.isConnected
+                      ? AppLocale.t('Ngắt kết nối')
+                      : AppLocale.t('Đăng xuất'),
+                  exitIcon: ctrl.isConnected
+                      ? Icons.link_off_rounded
+                      : Icons.logout_rounded,
                 ),
-                IndustrialTopBarItem.connection => const SizedBox.shrink(),
-              },
+                // ─── Body ───
+                Expanded(
+                  child: switch (widget.activeItem) {
+                    IndustrialTopBarItem.dashboard => _DashboardPanel(
+                      controller: ctrl,
+                      onSpeedTap: _showSpeedPanel,
+                    ),
+                    IndustrialTopBarItem.diagnostics => _ResponsiveDiagnosticsPanel(
+                      controller: ctrl,
+                    ),
+                    IndustrialTopBarItem.logs => _LogsPanel(controller: ctrl),
+                    IndustrialTopBarItem.settings => _SettingsPanel(
+                      controller: ctrl,
+                      username: widget.username,
+                      languageCode: widget.languageCode,
+                      themeMode: widget.themeMode,
+                      onLanguageChanged: widget.onLanguageChanged,
+                      onThemeModeChanged: widget.onThemeModeChanged,
+                      onChangePassword: _showChangePasswordPanel,
+                      onDisconnect: widget.onDisconnect,
+                      onLogout: widget.onLogout,
+                    ),
+                    IndustrialTopBarItem.connection => const SizedBox.shrink(),
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -956,9 +1031,13 @@ class _DashboardBatteryMetric extends StatelessWidget {
         : AppColors.error;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'PIN',
@@ -981,16 +1060,14 @@ class _DashboardBatteryMetric extends StatelessWidget {
                 color: color,
               ),
               const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  '$batteryLevel%',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
+              Text(
+                '$batteryLevel%',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
@@ -1021,7 +1098,8 @@ class _DashboardBatteryMetric extends StatelessWidget {
           ],
         ],
       ),
-    );
+    ),
+  );
   }
 }
 
