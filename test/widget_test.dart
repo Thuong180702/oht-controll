@@ -981,6 +981,27 @@ void main() {
 
     expect(find.byKey(const Key('diagnostics_panel')), findsOneWidget);
   });
+
+  testWidgets('Linux desktop keyboard shortcuts trigger Ctrl+2 tab navigation', (
+    WidgetTester tester,
+  ) async {
+    await pumpDesktopApp(tester);
+    await login(tester);
+
+    await tester.tap(find.text('Chế độ Mock (Demo)'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(OhtManualScreen), findsOneWidget);
+
+    // Send Ctrl+2 to switch to Diagnostics tab
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(find.byKey(const Key('diagnostics_panel')), findsOneWidget);
+  });
 }
 
 OhtTelemetry _telemetry({

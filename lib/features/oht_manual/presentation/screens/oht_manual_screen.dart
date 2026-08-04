@@ -161,16 +161,35 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
           const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () {
             widget.onTopNavSelected(IndustrialTopBarItem.dashboard);
           },
+          const SingleActivator(LogicalKeyboardKey.digit1, control: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.dashboard);
+          },
           const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.diagnostics);
+          },
+          const SingleActivator(LogicalKeyboardKey.digit2, control: true): () {
             widget.onTopNavSelected(IndustrialTopBarItem.diagnostics);
           },
           const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () {
             widget.onTopNavSelected(IndustrialTopBarItem.logs);
           },
+          const SingleActivator(LogicalKeyboardKey.digit3, control: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.logs);
+          },
           const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () {
             widget.onTopNavSelected(IndustrialTopBarItem.settings);
           },
+          const SingleActivator(LogicalKeyboardKey.digit4, control: true): () {
+            widget.onTopNavSelected(IndustrialTopBarItem.settings);
+          },
           const SingleActivator(LogicalKeyboardKey.keyL, meta: true): () {
+            if (ctrl.isConnected) {
+              widget.onDisconnect();
+            } else {
+              widget.onLogout();
+            }
+          },
+          const SingleActivator(LogicalKeyboardKey.keyL, control: true): () {
             if (ctrl.isConnected) {
               widget.onDisconnect();
             } else {
