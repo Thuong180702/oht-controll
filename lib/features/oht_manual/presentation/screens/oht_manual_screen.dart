@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,7 @@ import '../../../../core/enums/lidar_zone.dart';
 import '../../../../core/enums/manual_command_type.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_locale.dart';
+import '../../../../core/utils/app_update_service.dart';
 import '../../../../core/utils/auth_storage.dart';
 import '../../../../core/widgets/pressable.dart';
 
@@ -51,6 +53,7 @@ class OhtManualScreen extends StatefulWidget {
 class _OhtManualScreenState extends State<OhtManualScreen> {
   Timer? _pollTimer;
   int _lastRevision = -1;
+  AppVersionInfo? _availableUpdate;
 
   @override
   void initState() {
@@ -62,6 +65,61 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
         if (mounted) setState(() {});
       }
     });
+    _checkForAppUpdates();
+  }
+
+  Future<void> _checkForAppUpdates() async {
+    final info = await AppUpdateService.checkForUpdates();
+    if (mounted && info != null && info.isUpdateAvailable) {
+      setState(() {
+        _availableUpdate = info;
+      });
+    }
+  }
+
+  void _showUpdateDialog(AppVersionInfo info) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.system_update_rounded, color: AppColors.warning),
+            const SizedBox(width: 8),
+            Text('Cập nhật v${info.latestVersion}'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Đã có bản cập nhật mới cho ứng dụng OHT!'),
+            const SizedBox(height: 8),
+            Text('Phiên bản mới: v${info.latestVersion}'),
+            const SizedBox(height: 12),
+            const Text('Nội dung cập nhật:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(info.releaseNotes, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Để sau'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              final downloadUrl = AppUpdateService.getDownloadUrl(info, defaultTargetPlatform);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Đang mở trang tải bản mới: $downloadUrl')),
+              );
+            },
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Tải bản mới'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -213,6 +271,12 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
                   statusLabel: connectionLabel,
                   statusColor: connectionColor,
                   emergencyActive: esActive,
+                  updateAvailable: _availableUpdate != null,
+                  onUpdateTap: () {
+                    if (_availableUpdate != null) {
+                      _showUpdateDialog(_availableUpdate!);
+                    }
+                  },
                   onItemSelected: widget.onTopNavSelected,
                   onEmergencyPressed: () {
                     ctrl.sendManualCommand(ManualCommandType.emergencyStop);

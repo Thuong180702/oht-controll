@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_locale.dart';
+import '../../../../core/widgets/pressable.dart';
 
 enum IndustrialTopBarItem { dashboard, diagnostics, connection, logs, settings }
 
@@ -41,6 +42,8 @@ class IndustrialTopBar extends StatelessWidget {
     this.onExit,
     this.exitLabel,
     this.exitIcon = Icons.logout_rounded,
+    this.updateAvailable = false,
+    this.onUpdateTap,
     super.key,
   });
 
@@ -50,6 +53,8 @@ class IndustrialTopBar extends StatelessWidget {
   final Color? statusColor;
   final String languageCode;
   final bool emergencyActive;
+  final bool updateAvailable;
+  final VoidCallback? onUpdateTap;
   final VoidCallback? onEmergencyPressed;
   final ValueChanged<IndustrialTopBarItem>? onItemSelected;
   final VoidCallback? onUserTap;
@@ -110,6 +115,10 @@ class IndustrialTopBar extends StatelessWidget {
               compact: isCompact,
               onTap: onExit!,
             ),
+            const SizedBox(width: 6),
+          ],
+          if (updateAvailable) ...[
+            _UpdateChip(onTap: onUpdateTap),
             const SizedBox(width: 6),
           ],
           _EmergencyButton(
@@ -527,6 +536,43 @@ class _EmergencyButton extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UpdateChip extends StatelessWidget {
+  const _UpdateChip({this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.warningBg,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.system_update_rounded, size: 13, color: AppColors.warning),
+            const SizedBox(width: 4),
+            Text(
+              'UPDATE',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppColors.warning,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
