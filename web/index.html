@@ -15,8 +15,8 @@
       navigator.serviceWorker.register = function(url, options) {
         const urlStr = String(url);
         if (urlStr.includes('flutter_service_worker.js')) {
-          console.log('[PWA] Redirected flutter_service_worker.js registration to ./sw.js?v=65');
-          return _origRegister('./sw.js?v=65', options);
+          console.log('[PWA] Redirected flutter_service_worker.js registration to ./sw.js?v=1.0.1');
+          return _origRegister('./sw.js?v=1.0.1', options);
         }
         return _origRegister(url, options);
       };
@@ -127,18 +127,8 @@
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
 
-    // ─── Service Worker Registration & Silent Auto-Update ─────────────
+    // ─── Service Worker Registration & Version Update Listener ────────
     if ('serviceWorker' in navigator) {
-      let refreshing = false;
-      // Auto-reload seamlessly when a new Service Worker activates
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          console.log('[PWA] New version activated. Auto-reloading page...');
-          window.location.reload();
-        }
-      });
-
       window.addEventListener('load', async () => {
         try {
           // Clean legacy registrations
@@ -149,21 +139,27 @@
               await reg.unregister();
             }
           }
-          const reg = await navigator.serviceWorker.register('./sw.js?v=' + Date.now(), { scope: './' });
+
+          const reg = await navigator.serviceWorker.register('./sw.js?v=1.0.1', { scope: './' });
           console.log('[PWA] Service Worker registered:', reg.scope);
 
-          // Force SW update check whenever online or tab becomes visible
-          function checkSWUpdate() {
-            if (navigator.onLine && reg) {
-              reg.update().catch(() => {});
-            }
-          }
+          // Only reload when a GENUINE new build is fetched and installed
+          reg.onupdatefound = () => {
+            const installingWorker = reg.installing;
+            if (!installingWorker) return;
 
-          window.addEventListener('online', checkSWUpdate);
-          document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') checkSWUpdate();
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[PWA] Genuine update downloaded. Reloading app...');
+                window.location.reload();
+              }
+            };
+          };
+
+          // Check for network updates when coming back online
+          window.addEventListener('online', () => {
+            reg.update().catch(() => {});
           });
-          checkSWUpdate();
         } catch (err) {
           console.warn('[PWA] SW registration notice:', err);
         }
