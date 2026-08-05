@@ -46,6 +46,7 @@ class EventLogExcelExporter {
         _row(1, const [
           'Timestamp',
           'Severity',
+          'Operator',
           'Message',
           'Event ID',
         ], style: 1),
@@ -57,6 +58,7 @@ class EventLogExcelExporter {
         _row(i + 2, [
           _formatTimestamp(event.timestamp),
           event.severity.name.toUpperCase(),
+          event.operator,
           event.message,
           event.id,
         ]),
@@ -65,7 +67,7 @@ class EventLogExcelExporter {
 
     return '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <dimension ref="A1:D$lastRow"/>
+  <dimension ref="A1:E$lastRow"/>
   <sheetViews>
     <sheetView workbookViewId="0">
       <pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>
@@ -74,13 +76,14 @@ class EventLogExcelExporter {
   <cols>
     <col min="1" max="1" width="22" customWidth="1"/>
     <col min="2" max="2" width="14" customWidth="1"/>
-    <col min="3" max="3" width="80" customWidth="1"/>
-    <col min="4" max="4" width="24" customWidth="1"/>
+    <col min="3" max="3" width="18" customWidth="1"/>
+    <col min="4" max="4" width="80" customWidth="1"/>
+    <col min="5" max="5" width="24" customWidth="1"/>
   </cols>
   <sheetData>
     $rows
   </sheetData>
-  <autoFilter ref="A1:D$lastRow"/>
+  <autoFilter ref="A1:E$lastRow"/>
 </worksheet>''';
   }
 

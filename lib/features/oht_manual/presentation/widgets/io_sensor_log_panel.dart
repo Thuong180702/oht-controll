@@ -683,6 +683,22 @@ class _FullRow extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceBorder.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              event.operator,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

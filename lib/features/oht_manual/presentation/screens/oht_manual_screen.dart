@@ -102,6 +102,7 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
   @override
   Widget build(BuildContext context) {
     final ctrl = widget.controller;
+    ctrl.setOperator(widget.username);
     final esActive = ctrl.emergencyStopActive;
     final (connectionLabel, connectionColor) = _connectionStatusMeta(
       ctrl.connectionStatus.phase,
@@ -2668,6 +2669,44 @@ class _LogsPanelState extends State<_LogsPanel> {
                                         fontSize: 9,
                                         fontWeight: FontWeight.w900,
                                       ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    width: 90,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surfaceBorder.withValues(alpha: 0.25),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          event.operator == 'System'
+                                              ? Icons.smart_toy_outlined
+                                              : Icons.person_outline_rounded,
+                                          size: 10,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Expanded(
+                                          child: Text(
+                                            event.operator,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(width: 12),

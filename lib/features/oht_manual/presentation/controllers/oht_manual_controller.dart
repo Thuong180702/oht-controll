@@ -27,7 +27,10 @@ import '../../../../core/utils/event_log_storage.dart';
 class OhtManualController {
   static const Duration _deadmanHeartbeatPeriod = Duration(milliseconds: 250);
 
-  OhtManualController({OhtCommunicationService? service}) {
+  OhtManualController({
+    OhtCommunicationService? service,
+    String operator = 'Thaco',
+  }) : _operator = operator {
     _service = service ?? MockOhtCommunicationService();
     _connectionStatus =
         service?.status ??
@@ -42,9 +45,19 @@ class OhtManualController {
         AlarmEvent.now(
           severity: EventSeverity.info,
           message: 'Mock mode is enabled by default',
+          operator: 'System',
         ),
       );
     }
+  }
+
+  String _operator;
+  String get operator => _operator;
+
+  void setOperator(String name) {
+    if (name.trim().isEmpty || name == _operator) return;
+    _operator = name.trim();
+    _bump();
   }
 
   late OhtCommunicationService _service;
@@ -209,6 +222,7 @@ class OhtManualController {
         severity: EventSeverity.info,
         message:
             'Connection configured for ${protocol.label} at $activeEndpoint',
+        operator: _operator,
       ),
     );
     _bump();
@@ -224,6 +238,7 @@ class OhtManualController {
         AlarmEvent.now(
           severity: EventSeverity.warning,
           message: 'Blocked ${type.wireName}: $blockReason',
+          operator: _operator,
         ),
       );
       return;
@@ -255,6 +270,7 @@ class OhtManualController {
         severity: EventSeverity.command,
         message:
             'Sent ${command.type.wireName} target=${command.target} speed=${command.speed}% requestId=${command.requestId}',
+        operator: _operator,
       ),
     );
 

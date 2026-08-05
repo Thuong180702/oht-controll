@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_application_1/core/constants/app_constants.dart';
 import 'package:flutter_application_1/core/constants/oht_ids.dart';
 import 'package:flutter_application_1/core/enums/connection_phase.dart';
+import 'package:flutter_application_1/core/enums/event_severity.dart';
 import 'package:flutter_application_1/core/enums/lidar_zone.dart';
 import 'package:flutter_application_1/core/enums/manual_command_type.dart';
 import 'package:flutter_application_1/core/enums/motor_state.dart';
@@ -102,6 +103,32 @@ void main() {
     expect(stop.containsKey('unit'), isFalse);
     expect(stop.containsKey('value'), isFalse);
     expect(stop.containsKey('deadman'), isFalse);
+  });
+
+  test('AlarmEvent operator field serializes and deserializes correctly', () {
+    final event = AlarmEvent.now(
+      severity: EventSeverity.command,
+      message: 'Test command',
+      operator: 'Thaco_Op1',
+    );
+
+    final json = event.toJson();
+    expect(json['operator'], 'Thaco_Op1');
+
+    final restored = AlarmEvent.fromJson(json);
+    expect(restored.operator, 'Thaco_Op1');
+  });
+
+  test('AlarmEvent operator defaults to System when omitted in json', () {
+    final json = {
+      'id': 'evt_123',
+      'severity': 'info',
+      'message': 'System event',
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    final event = AlarmEvent.fromJson(json);
+    expect(event.operator, 'System');
   });
 
   test('stopAll serializes correctly', () {

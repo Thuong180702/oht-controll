@@ -6,16 +6,19 @@ class AlarmEvent {
     required this.severity,
     required this.message,
     required this.timestamp,
+    this.operator = 'System',
   });
 
   final String id;
   final EventSeverity severity;
   final String message;
   final DateTime timestamp;
+  final String operator;
 
   factory AlarmEvent.now({
     required EventSeverity severity,
     required String message,
+    String operator = 'System',
   }) {
     final now = DateTime.now();
     return AlarmEvent(
@@ -23,6 +26,7 @@ class AlarmEvent {
       severity: severity,
       message: message,
       timestamp: now,
+      operator: operator,
     );
   }
 
@@ -31,6 +35,7 @@ class AlarmEvent {
         'severity': severity.name,
         'message': message,
         'timestamp': timestamp.toIso8601String(),
+        'operator': operator,
       };
 
   factory AlarmEvent.fromJson(Map<String, dynamic> json) {
@@ -44,6 +49,7 @@ class AlarmEvent {
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
           : DateTime.now(),
+      operator: json['operator'] as String? ?? 'System',
     );
   }
 }
