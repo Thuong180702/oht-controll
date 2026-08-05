@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/oht_ids.dart';
 import '../../../../core/enums/connection_phase.dart';
 import '../../../../core/enums/event_severity.dart';
@@ -3174,7 +3175,7 @@ class _SettingsCardGrid extends StatelessWidget {
       title: AppLocale.t('Hệ thống chung'),
       icon: Icons.settings_outlined,
       children: [
-        _SettingsRow(label: AppLocale.t('Định danh đơn vị'), value: '402-B'),
+        _SettingsRow(label: AppLocale.t('Định danh đơn vị'), value: AppConstants.unitId),
         _SettingsOptionGroup(
           label: AppLocale.t('Ngôn ngữ giao diện'),
           children: [

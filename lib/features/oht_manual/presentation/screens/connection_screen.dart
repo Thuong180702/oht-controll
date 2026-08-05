@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/enums/communication_protocol.dart';
 import '../../../../core/enums/connection_phase.dart';
 import '../../../../core/enums/manual_command_type.dart';
@@ -287,7 +288,7 @@ class _StatusPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _StatusLine(
-                label: 'Vehicle Link: 402-B',
+                label: 'Vehicle Link: ${AppConstants.unitId}',
                 color: statusColor,
                 value: statusLabel,
               ),
