@@ -74,3 +74,15 @@ jobs:
           echo "🌐 Your live Flutter Web App is available at:"
           echo "👉 https://${{ secrets.CLOUDFLARE_PROJECT_NAME }}.pages.dev"
           echo "================================================="
+
+      - name: Create Automated GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "Bản cập nhật tự động cho OHT Control System"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
