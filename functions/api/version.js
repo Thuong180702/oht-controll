@@ -10,7 +10,7 @@ export async function onRequest(context) {
       android: "https://github.com/Thuong180702/oht-controll/releases/latest",
       macOS: "https://github.com/Thuong180702/oht-controll/releases/latest",
       linux: "https://github.com/Thuong180702/oht-controll/releases/latest",
-      html: "https://oht-control.pages.dev"
+      html: "https://robot-controller-remote.pages.dev"
     }
   };
 

@@ -46,8 +46,9 @@ class AppUpdateService {
   AppUpdateService._();
 
   static const List<String> _versionEndpoints = [
-    'https://oht-control.pages.dev/version.json',
-    'https://thaco-oht-auth.oht-control.workers.dev/api/version',
+    'https://robot-controller-remote.pages.dev/version.json',
+    'https://robot-controller-remote.pages.dev/api/version',
+    'https://raw.githubusercontent.com/${AppConstants.githubRepo}/main/web/version.json',
     'https://api.github.com/repos/${AppConstants.githubRepo}/releases/latest',
   ];
 
@@ -90,7 +91,7 @@ class AppUpdateService {
         downloadUrls[k.toString()] = v.toString();
       });
 
-      downloadUrls.putIfAbsent('html', () => 'https://oht-control.pages.dev');
+      downloadUrls.putIfAbsent('html', () => 'https://robot-controller-remote.pages.dev');
       downloadUrls.putIfAbsent('windows', () => downloadUrls['html']!);
       downloadUrls.putIfAbsent('android', () => downloadUrls['html']!);
       downloadUrls.putIfAbsent('macOS', () => downloadUrls['html']!);
