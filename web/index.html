@@ -127,8 +127,18 @@
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
 
-    // ─── Service Worker Registration ──────────────────────────────────
+    // ─── Service Worker Registration & Silent Auto-Update ─────────────
     if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      // Auto-reload seamlessly when a new Service Worker activates
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          console.log('[PWA] New version activated. Auto-reloading page...');
+          window.location.reload();
+        }
+      });
+
       window.addEventListener('load', async () => {
         try {
           // Clean legacy registrations
@@ -139,8 +149,21 @@
               await reg.unregister();
             }
           }
-          const reg = await navigator.serviceWorker.register('./sw.js?v=65', { scope: './' });
-          console.log('[PWA] Service Worker active & ready:', reg.scope);
+          const reg = await navigator.serviceWorker.register('./sw.js?v=' + Date.now(), { scope: './' });
+          console.log('[PWA] Service Worker registered:', reg.scope);
+
+          // Force SW update check whenever online or tab becomes visible
+          function checkSWUpdate() {
+            if (navigator.onLine && reg) {
+              reg.update().catch(() => {});
+            }
+          }
+
+          window.addEventListener('online', checkSWUpdate);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') checkSWUpdate();
+          });
+          checkSWUpdate();
         } catch (err) {
           console.warn('[PWA] SW registration notice:', err);
         }
