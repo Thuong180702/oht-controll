@@ -3,7 +3,7 @@ export async function onRequest(context) {
   const versionData = {
     version: "1.0.1",
     build_number: 2,
-    release_notes: "Bổ sung cơ chế tự động kiểm tra bản mới, lưu vết tên người vận hành và tối ưu giao diện.",
+    release_notes: "Cập nhật Unit ID mới 1807-PRO, tính năng tự động phát hiện bản mới ngầm và tối ưu giao diện.",
     published_at: new Date().toISOString(),
     download_urls: {
       windows: "https://github.com/Thuong180702/oht-controll/releases/latest",

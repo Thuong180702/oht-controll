@@ -2,7 +2,7 @@ class AppConstants {
   const AppConstants._();
 
   static const appName = 'OHT Manual Control & Monitoring App';
-  static const unitId = '1807-T';
+  static const unitId = '1807-PRO';
   static const currentVersion = '1.0.0';
   static const currentBuildNumber = 1;
   static const githubRepo = 'Thuong180702/oht-controll';
