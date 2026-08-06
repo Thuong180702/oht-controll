@@ -285,16 +285,28 @@ class AppUpdateService {
       final path = file.path;
 
       if (Platform.isWindows) {
-        if (path.endsWith('.exe') || path.endsWith('.msi')) {
-          final currentExePath = Platform.resolvedExecutable;
+        final currentExePath = Platform.resolvedExecutable;
+        final currentAppDir = Directory(currentExePath).parent.path;
+        final batFile = File('${Directory.systemTemp.path}${Platform.pathSeparator}oht_updater.bat');
 
-          // Run Windows self-updater batch script
-          final batFile = File('${Directory.systemTemp.path}${Platform.pathSeparator}oht_updater.bat');
+        if (path.toLowerCase().endsWith('.zip')) {
+          // Extract updated ZIP bundle (contains .exe, flutter_windows.dll, and data/ folder) over application directory
           final batContent = '''
 @echo off
 timeout /t 2 /nobreak > NUL
-copy /Y "$path" "$currentExePath"
+powershell -Command "Expand-Archive -Path '$path' -DestinationPath '$currentAppDir' -Force"
 start "" "$currentExePath"
+del "%~f0"
+''';
+          await batFile.writeAsString(batContent);
+          await Process.start('cmd.exe', ['/c', batFile.path], runInShell: true);
+          exit(0);
+        } else if (path.toLowerCase().endsWith('.exe') || path.toLowerCase().endsWith('.msi')) {
+          // Launch installer executable
+          final batContent = '''
+@echo off
+timeout /t 2 /nobreak > NUL
+start "" "$path"
 del "%~f0"
 ''';
           await batFile.writeAsString(batContent);
