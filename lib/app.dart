@@ -143,9 +143,9 @@ class _OhtManualAppState extends State<OhtManualApp> {
   }
 
   Future<void> _checkLiveSession() async {
-    if (_screen == _AppScreen.login || !mounted) return;
+    if (_screen == _AppScreen.login || !mounted || _username.isEmpty) return;
     try {
-      final isValid = await AuthStorage.isSessionValid();
+      final isValid = await AuthStorage.isSessionValid(_username);
       if (!isValid && mounted && _screen != _AppScreen.login) {
         await _onLogout();
         _scaffoldMessengerKey.currentState?.showSnackBar(

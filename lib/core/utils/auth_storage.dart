@@ -233,12 +233,14 @@ class AuthStorage {
     return defaultPassword;
   }
 
-  static Future<bool> isSessionValid() async {
-    final activePassword = SessionStorage.getItem(_activeSessionPasswordKey) ??
-        SessionStorage.getItem(_passwordKey) ??
-        defaultPassword;
+  static Future<bool> isSessionValid(String username) async {
+    final clean = username.trim();
+    if (clean.isEmpty) return true;
 
-    final remotePassword = await AuthCloudService.fetchRemotePassword(username: defaultUsername);
+    final activePassword = SessionStorage.getItem(_activeSessionPasswordKey);
+    if (activePassword == null || activePassword.isEmpty) return true;
+
+    final remotePassword = await AuthCloudService.fetchRemotePassword(username: clean);
     if (remotePassword != null && remotePassword.isNotEmpty) {
       if (remotePassword != activePassword) {
         return false;
