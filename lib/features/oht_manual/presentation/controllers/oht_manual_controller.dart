@@ -60,6 +60,15 @@ class OhtManualController {
     _bump();
   }
 
+  int _userRole = 1;
+  int get userRole => _userRole;
+
+  void setUserRole(int role) {
+    if (_userRole == role) return;
+    _userRole = role;
+    _bump();
+  }
+
   late OhtCommunicationService _service;
   StreamSubscription<OhtTelemetry>? _telemetrySubscription;
   StreamSubscription<ConnectionStatus>? _statusSubscription;
@@ -124,16 +133,19 @@ class OhtManualController {
   }
 
   void setTravelSpeed(double value) {
+    if (_userRole == 2) return;
     _travelSpeed = value.round().clamp(0, 100).toInt();
     _bump();
   }
 
   void setHoistSpeed(double value) {
+    if (_userRole == 2) return;
     _hoistSpeed = value.round().clamp(0, 100).toInt();
     _bump();
   }
 
   void setSteerSpeed(double value) {
+    if (_userRole == 2) return;
     _steerSpeed = value.round().clamp(0, 100).toInt();
     _bump();
   }
@@ -310,6 +322,7 @@ class OhtManualController {
 
   /// Block reason for unified steer — any limit on that side blocks.
   String? blockReasonForUnifiedSteer({required bool left}) {
+    if (_userRole == 2) return 'Chế độ chỉ giám sát (Viewer) - Không có quyền thao tác';
     if (!isConnected) return 'OHT is not connected';
     if (emergencyStopActive) return 'Emergency stop is active';
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
@@ -330,6 +343,7 @@ class OhtManualController {
 
   /// Block reason for unified hoist — any upper limit blocks up.
   String? blockReasonForUnifiedHoist({required bool up}) {
+    if (_userRole == 2) return 'Chế độ chỉ giám sát (Viewer) - Không có quyền thao tác';
     if (!isConnected) return 'OHT is not connected';
     if (emergencyStopActive) return 'Emergency stop is active';
     if (!_telemetry.isManualMode) return 'OHT is not in manual mode';
@@ -351,6 +365,7 @@ class OhtManualController {
   }
 
   String? blockReasonFor(ManualCommandType type) {
+    if (_userRole == 2) return 'Chế độ chỉ giám sát (Viewer) - Không có quyền thao tác';
     if (type == ManualCommandType.emergencyStop) return null;
     if (type == ManualCommandType.resetError) return null;
     if (!isConnected) return 'OHT is not connected';

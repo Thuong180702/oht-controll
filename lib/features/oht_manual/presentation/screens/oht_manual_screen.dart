@@ -63,6 +63,8 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
   @override
   void initState() {
     super.initState();
+    widget.controller.setOperator(widget.username);
+    widget.controller.setUserRole(widget.userRole);
     _pollTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       final rev = widget.controller.revision;
       if (rev != _lastRevision) {
@@ -71,6 +73,17 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
       }
     });
     _checkForAppUpdates();
+  }
+
+  @override
+  void didUpdateWidget(covariant OhtManualScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userRole != widget.userRole) {
+      widget.controller.setUserRole(widget.userRole);
+    }
+    if (oldWidget.username != widget.username) {
+      widget.controller.setOperator(widget.username);
+    }
   }
 
   Future<void> _checkForAppUpdates() async {
