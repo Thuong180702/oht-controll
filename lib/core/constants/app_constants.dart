@@ -2,9 +2,9 @@ class AppConstants {
   const AppConstants._();
 
   static const appName = 'OHT Manual Control & Monitoring App';
-  static const unitId = '1807-VIP';
-  static const currentVersion = '1.0.4';
-  static const currentBuildNumber = 5;
+  static const unitId = '1807-FINAL';
+  static const currentVersion = '1.0.5';
+  static const currentBuildNumber = 6;
   static const githubRepo = 'Thuong180702/oht-controll';
 
   static const defaultWebSocketUrl = 'ws://10.14.64.7:80/ws';
