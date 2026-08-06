@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
-  "build_number": 2,
-  "release_notes": "Cập nhật Unit ID mới 1807-PRO, tính năng tự động phát hiện bản mới ngầm và tối ưu giao diện.",
-  "published_at": "2026-08-05T16:00:00Z",
+  "version": "1.0.2",
+  "build_number": 3,
+  "release_notes": "Bản cập nhật v1.0.2: Nâng cấp Unit ID thành 1807-PRO-MAX, tối ưu hóa giao diện và hệ thống cập nhật tự động ngầm.",
+  "published_at": "2026-08-06T08:00:00Z",
   "download_urls": {
     "windows": "https://github.com/Thuong180702/oht-controll/releases/latest",
     "android": "https://github.com/Thuong180702/oht-controll/releases/latest",

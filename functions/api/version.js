@@ -1,9 +1,9 @@
 // Cloudflare Pages API endpoint for Native App Version Check (/api/version)
 export async function onRequest(context) {
   const versionData = {
-    version: "1.0.1",
-    build_number: 2,
-    release_notes: "Cập nhật Unit ID mới 1807-PRO, tính năng tự động phát hiện bản mới ngầm và tối ưu giao diện.",
+    version: "1.0.2",
+    build_number: 3,
+    release_notes: "Bản cập nhật v1.0.2: Nâng cấp Unit ID thành 1807-PRO-MAX, tối ưu hóa giao diện và hệ thống cập nhật tự động ngầm.",
     published_at: new Date().toISOString(),
     download_urls: {
       windows: "https://github.com/Thuong180702/oht-controll/releases/latest",
