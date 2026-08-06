@@ -267,9 +267,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Future<void> _confirmDelete(UserAccount account) async {
-    if (account.username.toLowerCase() == 'admin') {
+    if (account.username.toLowerCase() == 'thaco') {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocale.t('Không thể xóa tài khoản Admin mặc định.'))),
+        SnackBar(content: Text(AppLocale.t('Không thể xóa tài khoản Thaco (Admin mặc định).'))),
       );
       return;
     }

@@ -8,27 +8,20 @@ class AuthStorage {
   static const defaultUsername = 'Thaco';
   static const defaultPassword = 'Thaco@1234';
   
-  static const defaultAdminUsername = 'admin';
-  static const defaultAdminPassword = 'admin@1234';
+  static const defaultAdminUsername = 'Thaco';
+  static const defaultAdminPassword = 'Thaco@1234';
 
-  static const _accountsListKey = 'oht_user_accounts_v2';
+  static const _accountsListKey = 'oht_user_accounts_v3';
   static const _passwordKey = 'admin_password';
   static const _activeSessionPasswordKey = 'active_session_password';
   static const _activeSessionRoleKey = 'active_session_role';
 
-  /// Pre-seeded default user accounts
+  /// Pre-seeded default user accounts with Thaco as Admin (Role 0)
   static final List<UserAccount> _defaultAccounts = [
-    UserAccount(
-      username: defaultAdminUsername,
-      password: defaultAdminPassword,
-      role: 0, // Admin
-      isLocked: false,
-      createdAt: '2026-01-01T00:00:00.000Z',
-    ),
     UserAccount(
       username: defaultUsername,
       password: defaultPassword,
-      role: 1, // User điều khiển (Operator)
+      role: 0, // Admin (Quản trị viên)
       isLocked: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     ),
@@ -37,19 +30,29 @@ class AuthStorage {
   /// Ensures default accounts exist and syncs background session
   static Future<void> ensureSeeded() async {
     final accounts = getAccounts();
-    if (accounts.isEmpty) {
-      await _saveAccountsList(_defaultAccounts);
+    
+    // Remove old 'admin' account if present
+    accounts.removeWhere((a) => a.username.trim().toLowerCase() == 'admin');
+
+    final thacoIndex = accounts.indexWhere((a) => a.username.trim().toLowerCase() == 'thaco');
+    if (thacoIndex >= 0) {
+      // Ensure Thaco has Role 0 (Admin)
+      accounts[thacoIndex] = accounts[thacoIndex].copyWith(role: 0);
     } else {
-      // Ensure admin exists
-      if (!accounts.any((a) => a.username.toLowerCase() == defaultAdminUsername)) {
-        accounts.insert(0, _defaultAccounts[0]);
-        await _saveAccountsList(accounts);
-      }
+      accounts.insert(0, _defaultAccounts[0]);
     }
+    await _saveAccountsList(accounts);
 
     // Background sync accounts list from Cloudflare KV
     final remoteAccounts = await AuthCloudService.fetchAccountsList();
     if (remoteAccounts != null && remoteAccounts.isNotEmpty) {
+      remoteAccounts.removeWhere((a) => a.username.trim().toLowerCase() == 'admin');
+      final rIndex = remoteAccounts.indexWhere((a) => a.username.trim().toLowerCase() == 'thaco');
+      if (rIndex >= 0) {
+        remoteAccounts[rIndex] = remoteAccounts[rIndex].copyWith(role: 0);
+      } else {
+        remoteAccounts.insert(0, _defaultAccounts[0]);
+      }
       await _saveAccountsList(remoteAccounts);
     }
   }
@@ -62,7 +65,9 @@ class AuthStorage {
     }
     try {
       final List<dynamic> decoded = jsonDecode(raw);
-      return decoded.map((item) => UserAccount.fromJson(item as Map<String, dynamic>)).toList();
+      final list = decoded.map((item) => UserAccount.fromJson(item as Map<String, dynamic>)).toList();
+      list.removeWhere((a) => a.username.trim().toLowerCase() == 'admin');
+      return list.isEmpty ? List.from(_defaultAccounts) : list;
     } catch (e) {
       debugPrint('[AuthStorage] Error decoding user accounts list: $e');
       return List.from(_defaultAccounts);
@@ -154,8 +159,8 @@ class AuthStorage {
   /// Deletes a user account by username
   static Future<({bool success, String message})> deleteAccount(String username) async {
     final clean = username.trim().toLowerCase();
-    if (clean == defaultAdminUsername) {
-      return (success: false, message: 'Không thể xóa tài khoản Admin mặc định.');
+    if (clean == 'thaco') {
+      return (success: false, message: 'Không thể xóa tài khoản Thaco (Admin mặc định).');
     }
 
     final accounts = getAccounts();
@@ -172,8 +177,8 @@ class AuthStorage {
   /// Toggles active / locked status of a user account
   static Future<({bool success, String message, bool isLocked})> toggleLockAccount(String username) async {
     final clean = username.trim().toLowerCase();
-    if (clean == defaultAdminUsername) {
-      return (success: false, message: 'Không thể khóa tài khoản Admin mặc định.', isLocked: false);
+    if (clean == 'thaco') {
+      return (success: false, message: 'Không thể khóa tài khoản Thaco (Admin mặc định).', isLocked: false);
     }
 
     final account = findAccount(username);
@@ -194,8 +199,8 @@ class AuthStorage {
     if (account != null) {
       return account.role;
     }
-    if (username.trim().toLowerCase() == defaultAdminUsername) return 0;
-    return 1; // Default to operator
+    if (username.trim().toLowerCase() == 'thaco') return 0; // Thaco is Admin
+    return 1;
   }
 
   // ─── Legacy compatibility helpers ───
