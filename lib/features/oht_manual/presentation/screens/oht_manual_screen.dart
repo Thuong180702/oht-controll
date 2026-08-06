@@ -110,17 +110,87 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
           FilledButton.icon(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              final downloadUrl = AppUpdateService.getDownloadUrl(info, defaultTargetPlatform);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Đang mở trang tải bản mới: $downloadUrl')),
-              );
+              _startDirectUpdateDownload(info);
             },
             icon: const Icon(Icons.download_rounded),
-            label: const Text('Tải bản mới'),
+            label: const Text('Cập nhật ngay'),
           ),
         ],
       ),
     );
+  }
+
+  void _startDirectUpdateDownload(AppVersionInfo info) {
+    final downloadUrl = AppUpdateService.getDownloadUrl(info, defaultTargetPlatform);
+
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đang cập nhật phiên bản Web... Vui lòng chờ vài giây')),
+      );
+      AppUpdateService.openDownloadUrl(downloadUrl);
+      return;
+    }
+
+    double downloadProgress = 0.0;
+    String statusText = 'Đang kết nối server...';
+    StateSetter? dialogSetState;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (progressContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          dialogSetState = setDialogState;
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.downloading_rounded, color: AppColors.info),
+                const SizedBox(width: 8),
+                const Text('Đang tải bản cập nhật...'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(value: downloadProgress > 0 ? downloadProgress : null),
+                const SizedBox(height: 12),
+                Text(statusText, style: const TextStyle(fontSize: 13)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    AppUpdateService.downloadInstallerFile(
+      downloadUrl: downloadUrl,
+      onProgress: (progress, bytesText) {
+        if (dialogSetState != null) {
+          dialogSetState!(() {
+            downloadProgress = progress;
+            statusText = 'Đã tải ${(progress * 100).toStringAsFixed(0)}% ($bytesText)';
+          });
+        }
+      },
+    ).then((file) async {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      if (file != null) {
+        final success = await AppUpdateService.launchInstaller(file);
+        if (!success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không thể tự chạy installer. Đang mở trình duyệt thay thế...')),
+          );
+          await AppUpdateService.openDownloadUrl(downloadUrl);
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tải bản cập nhật trực tiếp thất bại. Đang chuyển sang trình duyệt...')),
+        );
+        await AppUpdateService.openDownloadUrl(downloadUrl);
+      }
+    });
   }
 
   @override

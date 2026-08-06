@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/app_constants.dart';
 
@@ -175,5 +177,96 @@ class AppUpdateService {
       case TargetPlatform.fuchsia:
         return info.downloadUrls['html']!;
     }
+  }
+
+  /// Launch external browser or download manager for update URL
+  static Future<bool> openDownloadUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error launching download URL: $e');
+    }
+    return false;
+  }
+
+  /// Downloads update file directly with progress callback
+  static Future<File?> downloadInstallerFile({
+    required String downloadUrl,
+    required void Function(double progress, String bytesText) onProgress,
+  }) async {
+    if (kIsWeb) return null;
+    try {
+      final client = http.Client();
+      final request = http.Request('GET', Uri.parse(downloadUrl));
+      request.headers['User-Agent'] = 'OHTControlApp/${AppConstants.currentVersion}';
+      final response = await client.send(request);
+
+      if (response.statusCode != 200) {
+        debugPrint('[AppUpdateService] HTTP download failed with code ${response.statusCode}');
+        return null;
+      }
+
+      final totalBytes = response.contentLength ?? 0;
+      int downloadedBytes = 0;
+
+      final tempDir = Directory.systemTemp;
+      var rawFileName = downloadUrl.split('/').last.split('?').first;
+      if (rawFileName.isEmpty || !rawFileName.contains('.')) {
+        rawFileName = Platform.isWindows ? 'oht_update.exe' : 'oht_update.bin';
+      }
+      final saveFile = File('${tempDir.path}${Platform.pathSeparator}$rawFileName');
+      if (await saveFile.exists()) {
+        try {
+          await saveFile.delete();
+        } catch (_) {}
+      }
+
+      final sink = saveFile.openWrite();
+
+      await for (final chunk in response.stream) {
+        downloadedBytes += chunk.length;
+        sink.add(chunk);
+        if (totalBytes > 0) {
+          final progress = downloadedBytes / totalBytes;
+          final downloadedMb = (downloadedBytes / (1024 * 1024)).toStringAsFixed(1);
+          final totalMb = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
+          onProgress(progress, '$downloadedMb MB / $totalMb MB');
+        } else {
+          final downloadedMb = (downloadedBytes / (1024 * 1024)).toStringAsFixed(1);
+          onProgress(0.5, '$downloadedMb MB');
+        }
+      }
+
+      await sink.flush();
+      await sink.close();
+      return saveFile;
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error downloading update file: $e');
+    }
+    return null;
+  }
+
+  /// Launch installer file and exit app seamlessly
+  static Future<bool> launchInstaller(File file) async {
+    if (kIsWeb) return false;
+    try {
+      final path = file.path;
+      if (Platform.isWindows) {
+        if (path.endsWith('.exe') || path.endsWith('.msi')) {
+          await Process.start(path, [], runInShell: true);
+          exit(0);
+        } else {
+          await Process.run('explorer.exe', ['/select,', path]);
+          return true;
+        }
+      } else if (Platform.isLinux || Platform.isMacOS) {
+        await Process.start('open', [path], runInShell: true);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error launching installer: $e');
+    }
+    return false;
   }
 }
