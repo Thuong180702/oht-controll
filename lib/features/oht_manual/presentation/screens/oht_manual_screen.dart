@@ -3377,7 +3377,7 @@ class _SettingsCardGrid extends StatelessWidget {
               icon: const Icon(Icons.lock_reset_rounded, size: 16),
               label: Text(AppLocale.t('Đổi mật khẩu')),
             ),
-            if (userRole == 0 && onOpenUserManagement != null)
+            if (kIsWeb && userRole == 0 && onOpenUserManagement != null)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple.shade700,
