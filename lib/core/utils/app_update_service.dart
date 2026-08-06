@@ -213,7 +213,17 @@ class AppUpdateService {
       final tempDir = Directory.systemTemp;
       var rawFileName = downloadUrl.split('/').last.split('?').first;
       if (rawFileName.isEmpty || !rawFileName.contains('.')) {
-        rawFileName = Platform.isWindows ? 'oht_update.exe' : 'oht_update.bin';
+        if (Platform.isWindows) {
+          rawFileName = 'oht_update.exe';
+        } else if (Platform.isAndroid) {
+          rawFileName = 'oht_update.apk';
+        } else if (Platform.isMacOS) {
+          rawFileName = 'oht_update.dmg';
+        } else if (Platform.isLinux) {
+          rawFileName = 'oht_update.AppImage';
+        } else {
+          rawFileName = 'oht_update.bin';
+        }
       }
       final saveFile = File('${tempDir.path}${Platform.pathSeparator}$rawFileName');
       if (await saveFile.exists()) {
@@ -240,6 +250,27 @@ class AppUpdateService {
 
       await sink.flush();
       await sink.close();
+
+      // Check binary header to ensure it is a valid binary payload, not an HTML web page
+      if (await saveFile.exists()) {
+        final length = await saveFile.length();
+        if (length < 512) {
+          debugPrint('[AppUpdateService] Downloaded file is too small ($length bytes), likely HTML or redirect page.');
+          await saveFile.delete();
+          return null;
+        }
+
+        final bytes = await saveFile.openRead(0, 4).first;
+        if (bytes.isNotEmpty) {
+          // 0x3C is '<' (HTML tag start)
+          if (bytes[0] == 0x3C) {
+            debugPrint('[AppUpdateService] Downloaded payload is HTML text, not executable binary.');
+            await saveFile.delete();
+            return null;
+          }
+        }
+      }
+
       return saveFile;
     } catch (e) {
       debugPrint('[AppUpdateService] Error downloading update file: $e');
@@ -247,22 +278,58 @@ class AppUpdateService {
     return null;
   }
 
-  /// Launch installer file and exit app seamlessly
+  /// Launch installer file or execute self-updater script across Windows, Android, macOS, Linux
   static Future<bool> launchInstaller(File file) async {
     if (kIsWeb) return false;
     try {
       final path = file.path;
+
       if (Platform.isWindows) {
         if (path.endsWith('.exe') || path.endsWith('.msi')) {
-          await Process.start(path, [], runInShell: true);
+          final currentExePath = Platform.resolvedExecutable;
+
+          // Run Windows self-updater batch script
+          final batFile = File('${Directory.systemTemp.path}${Platform.pathSeparator}oht_updater.bat');
+          final batContent = '''
+@echo off
+timeout /t 2 /nobreak > NUL
+copy /Y "$path" "$currentExePath"
+start "" "$currentExePath"
+del "%~f0"
+''';
+          await batFile.writeAsString(batContent);
+          await Process.start('cmd.exe', ['/c', batFile.path], runInShell: true);
           exit(0);
         } else {
           await Process.run('explorer.exe', ['/select,', path]);
           return true;
         }
-      } else if (Platform.isLinux || Platform.isMacOS) {
-        await Process.start('open', [path], runInShell: true);
+      } else if (Platform.isAndroid) {
+        // Trigger Android Package Installer via system file handler
+        final uri = Uri.file(path);
+        if (await canLaunchUrl(uri)) {
+          return await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+        return await openDownloadUrl(path);
+      } else if (Platform.isMacOS) {
+        // Open DMG image or PKG installer
+        if (path.endsWith('.dmg')) {
+          await Process.start('hdiutil', ['attach', path], runInShell: true);
+          await Process.start('open', [path], runInShell: true);
+        } else {
+          await Process.start('open', [path], runInShell: true);
+        }
         return true;
+      } else if (Platform.isLinux) {
+        // Make AppImage executable and launch
+        if (path.endsWith('.AppImage')) {
+          await Process.run('chmod', ['+x', path]);
+          await Process.start(path, [], runInShell: true);
+          exit(0);
+        } else {
+          await Process.start('xdg-open', [path], runInShell: true);
+          return true;
+        }
       }
     } catch (e) {
       debugPrint('[AppUpdateService] Error launching installer: $e');

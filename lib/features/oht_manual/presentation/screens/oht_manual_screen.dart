@@ -186,7 +186,7 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tải bản cập nhật trực tiếp thất bại. Đang chuyển sang trình duyệt...')),
+          const SnackBar(content: Text('Đang mở trang phát hành để bạn tải bộ cài mới...')),
         );
         await AppUpdateService.openDownloadUrl(downloadUrl);
       }
