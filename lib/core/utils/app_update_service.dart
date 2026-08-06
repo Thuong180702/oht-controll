@@ -211,22 +211,21 @@ class AppUpdateService {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final assets = data['assets'] as List<dynamic>? ?? [];
 
-        String? ext;
-        if (platform == TargetPlatform.windows) ext = '.zip';
-        if (platform == TargetPlatform.windows && ext == null) ext = '.exe';
-        if (platform == TargetPlatform.android) ext = '.apk';
-        if (platform == TargetPlatform.macOS) ext = '.dmg';
-        if (platform == TargetPlatform.linux) ext = '.AppImage';
-
         for (final item in assets) {
           if (item is Map<String, dynamic>) {
             final name = (item['name'] as String? ?? '').toLowerCase();
             final downloadUrl = item['browser_download_url'] as String? ?? '';
             if (downloadUrl.isNotEmpty) {
-              if (ext != null && name.endsWith(ext)) {
+              if (platform == TargetPlatform.windows && (name.endsWith('.zip') || name.endsWith('.exe') || name.endsWith('.msi'))) {
                 return downloadUrl;
               }
-              if (platform == TargetPlatform.windows && (name.endsWith('.exe') || name.endsWith('.msi') || name.endsWith('.zip'))) {
+              if (platform == TargetPlatform.android && name.endsWith('.apk')) {
+                return downloadUrl;
+              }
+              if (platform == TargetPlatform.macOS && (name.endsWith('.dmg') || name.endsWith('.zip') || name.endsWith('.pkg'))) {
+                return downloadUrl;
+              }
+              if (platform == TargetPlatform.linux && (name.endsWith('.appimage') || name.endsWith('.tar.gz') || name.endsWith('.deb'))) {
                 return downloadUrl;
               }
             }

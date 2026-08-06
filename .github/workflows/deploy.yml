@@ -1,4 +1,4 @@
-name: Deploy Flutter Web & Windows Release to Cloudflare & GitHub
+name: Multi-Platform CI/CD & Automated OTA Releases
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   deploy-web:
-    name: Deploy Web to Cloudflare Pages
+    name: Deploy Web PWA to Cloudflare Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -59,8 +59,61 @@ jobs:
           npx wrangler pages project create "${{ secrets.CLOUDFLARE_PROJECT_NAME }}" --production-branch="main" || true
           npx wrangler pages deploy build/web --project-name="${{ secrets.CLOUDFLARE_PROJECT_NAME }}" --branch="main" --commit-dirty=true
 
+  build-and-release-android:
+    name: Build & Release Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Extract Version Info
+        id: version_info
+        run: |
+          VERSION=$(node -e "try { console.log(require('./web/version.json').version); } catch(e) { console.log('1.0.1'); }")
+          echo "APP_VERSION=v$VERSION" >> $GITHUB_ENV
+
+      - name: Build Flutter Android APK Release
+        run: flutter build apk --release
+
+      - name: Rename APK Output
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk "oht-control-android-${{ env.APP_VERSION }}.apk"
+
+      - name: Attach Android APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.APP_VERSION }}
+          name: Release ${{ env.APP_VERSION }}
+          body: "Bản cập nhật tự động đa nền tảng cho OHT Control System (${{ env.APP_VERSION }})"
+          files: |
+            oht-control-android-*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-and-release-windows:
-    name: Build & Release Windows App & GitHub Release
+    name: Build & Release Windows App
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -86,7 +139,6 @@ jobs:
         run: |
           VERSION=$(node -e "try { console.log(require('./web/version.json').version); } catch(e) { console.log('1.0.1'); }")
           echo "APP_VERSION=v$VERSION" >> $GITHUB_ENV
-          echo "Extracted version: v$VERSION"
 
       - name: Build Flutter Windows Release
         run: flutter build windows --release
@@ -97,14 +149,13 @@ jobs:
           $version = "$env:APP_VERSION"
           $zipName = "oht-control-windows-$version.zip"
           Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "$zipName" -Force
-          echo "Created package $zipName"
 
-      - name: Create Automated GitHub Release with Windows ZIP
+      - name: Attach Windows ZIP to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.APP_VERSION }}
           name: Release ${{ env.APP_VERSION }}
-          body: "Bản cập nhật tự động cho OHT Control System (${{ env.APP_VERSION }})"
+          body: "Bản cập nhật tự động đa nền tảng cho OHT Control System (${{ env.APP_VERSION }})"
           files: |
             oht-control-windows-*.zip
           draft: false
