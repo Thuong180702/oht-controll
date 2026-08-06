@@ -1,15 +1,20 @@
-name: Deploy Flutter Web to Cloudflare Pages
+name: Deploy Flutter Web to Cloudflare Pages & GitHub Releases
 
 on:
   push:
     branches:
       - main
       - master
+    tags:
+      - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-and-deploy:
-    name: Build & Deploy PWA to Cloudflare Pages
+    name: Build & Deploy PWA to Cloudflare Pages & Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -34,6 +39,13 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Extract Version Info
+        id: version_info
+        run: |
+          VERSION=$(node -e "try { console.log(require('./web/version.json').version); } catch(e) { console.log('1.0.1'); }")
+          echo "APP_VERSION=v$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: v$VERSION"
 
       - name: Build Flutter Web Release
         run: flutter build web --release
@@ -77,11 +89,10 @@ jobs:
 
       - name: Create Automated GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: "Bản cập nhật tự động cho OHT Control System"
+          tag_name: ${{ env.APP_VERSION }}
+          name: Release ${{ env.APP_VERSION }}
+          body: "Bản cập nhật tự động cho OHT Control System (${{ env.APP_VERSION }})"
           draft: false
           prerelease: false
         env:
