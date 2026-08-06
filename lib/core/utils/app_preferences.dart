@@ -5,6 +5,11 @@ import 'session_storage.dart';
 class AppPreferences {
   const AppPreferences._();
 
+  static Future<void> init() async {
+    await SessionStorage.init();
+    await SharedPreferences.getInstance();
+  }
+
   static const languageCodeKey = 'oht_language_code';
   static const themeModeKey = 'oht_theme_mode';
   static const loggedInUserKey = 'oht_logged_in_username';

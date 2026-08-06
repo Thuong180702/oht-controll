@@ -7,6 +7,7 @@ class SessionStorage {
 
   static final _impl = platform.createSessionStorage();
 
+  static Future<void> init() => _impl.init();
   static String? getItem(String key) => _impl.getItem(key);
   static Future<void> setItem(String key, String value) => _impl.setItem(key, value);
   static Future<void> removeItem(String key) => _impl.removeItem(key);

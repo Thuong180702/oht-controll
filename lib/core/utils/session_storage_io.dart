@@ -7,6 +7,11 @@ class IoSessionStorage implements SessionStoragePlatform {
   SharedPreferences? _prefs;
   final Map<String, String> _cache = {};
 
+  @override
+  Future<void> init() async {
+    await _getPrefs();
+  }
+
   Future<SharedPreferences> _getPrefs() async {
     final p = await SharedPreferences.getInstance();
     if (_prefs != p) {

@@ -6,6 +6,8 @@ SessionStoragePlatform createSessionStorage() => WebSessionStorage();
 
 class WebSessionStorage implements SessionStoragePlatform {
   @override
+  Future<void> init() async {}
+  @override
   String? getItem(String key) {
     try {
       return html.window.localStorage[key];
