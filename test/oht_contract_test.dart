@@ -150,8 +150,8 @@ void main() {
     expect(infoOlder.isUpdateAvailable, isFalse);
 
     const infoNewer = AppVersionInfo(
-      latestVersion: '1.0.10',
-      buildNumber: 11,
+      latestVersion: '1.0.11',
+      buildNumber: 12,
       releaseNotes: 'Test',
       downloadUrls: {},
     );
