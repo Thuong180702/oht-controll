@@ -6,6 +6,7 @@ import 'package:flutter_application_1/core/constants/app_constants.dart';
 import 'package:flutter_application_1/core/constants/oht_ids.dart';
 import 'package:flutter_application_1/core/enums/connection_phase.dart';
 import 'package:flutter_application_1/core/enums/event_severity.dart';
+import 'package:flutter_application_1/core/utils/app_update_service.dart';
 import 'package:flutter_application_1/core/enums/lidar_zone.dart';
 import 'package:flutter_application_1/core/enums/manual_command_type.dart';
 import 'package:flutter_application_1/core/enums/motor_state.dart';
@@ -129,6 +130,32 @@ void main() {
 
     final event = AlarmEvent.fromJson(json);
     expect(event.operator, 'System');
+  });
+
+  test('AppVersionInfo isUpdateAvailable is false when app is on latest version', () {
+    const infoSame = AppVersionInfo(
+      latestVersion: '1.0.1',
+      buildNumber: 2,
+      releaseNotes: 'Test',
+      downloadUrls: {},
+    );
+    expect(infoSame.isUpdateAvailable, isFalse);
+
+    const infoOlder = AppVersionInfo(
+      latestVersion: '1.0.0',
+      buildNumber: 1,
+      releaseNotes: 'Test',
+      downloadUrls: {},
+    );
+    expect(infoOlder.isUpdateAvailable, isFalse);
+
+    const infoNewer = AppVersionInfo(
+      latestVersion: '1.0.2',
+      buildNumber: 3,
+      releaseNotes: 'Test',
+      downloadUrls: {},
+    );
+    expect(infoNewer.isUpdateAvailable, isTrue);
   });
 
   test('stopAll serializes correctly', () {

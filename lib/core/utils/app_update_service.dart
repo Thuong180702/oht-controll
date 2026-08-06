@@ -22,8 +22,8 @@ class AppVersionInfo {
   final bool isMandatory;
 
   bool get isUpdateAvailable {
-    final current = AppConstants.currentVersion.trim();
-    final latest = latestVersion.trim().replaceAll(RegExp(r'^v'), '');
+    final current = AppConstants.currentVersion.trim().split('+').first.replaceAll(RegExp(r'^v'), '');
+    final latest = latestVersion.trim().split('+').first.replaceAll(RegExp(r'^v'), '');
     return _compareVersions(latest, current) > 0;
   }
 
