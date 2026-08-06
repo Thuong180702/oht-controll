@@ -190,6 +190,55 @@ class AppUpdateService {
     return false;
   }
 
+  /// Resolve direct binary download URL from GitHub Release Assets API if needed
+  static Future<String> resolveDirectBinaryUrl(String originalUrl, TargetPlatform platform) async {
+    if (!originalUrl.contains('github.com') || (!originalUrl.contains('/releases/latest') && !originalUrl.contains('/releases/tag/'))) {
+      return originalUrl;
+    }
+
+    try {
+      final repo = AppConstants.githubRepo;
+      final apiUrl = 'https://api.github.com/repos/$repo/releases/latest';
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'User-Agent': 'OHTControlApp/${AppConstants.currentVersion}',
+        },
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final assets = data['assets'] as List<dynamic>? ?? [];
+
+        String? ext;
+        if (platform == TargetPlatform.windows) ext = '.zip';
+        if (platform == TargetPlatform.windows && ext == null) ext = '.exe';
+        if (platform == TargetPlatform.android) ext = '.apk';
+        if (platform == TargetPlatform.macOS) ext = '.dmg';
+        if (platform == TargetPlatform.linux) ext = '.AppImage';
+
+        for (final item in assets) {
+          if (item is Map<String, dynamic>) {
+            final name = (item['name'] as String? ?? '').toLowerCase();
+            final downloadUrl = item['browser_download_url'] as String? ?? '';
+            if (downloadUrl.isNotEmpty) {
+              if (ext != null && name.endsWith(ext)) {
+                return downloadUrl;
+              }
+              if (platform == TargetPlatform.windows && (name.endsWith('.exe') || name.endsWith('.msi') || name.endsWith('.zip'))) {
+                return downloadUrl;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error resolving GitHub API release assets: $e');
+    }
+    return originalUrl;
+  }
+
   /// Downloads update file directly with progress callback
   static Future<File?> downloadInstallerFile({
     required String downloadUrl,
@@ -197,8 +246,12 @@ class AppUpdateService {
   }) async {
     if (kIsWeb) return null;
     try {
+      // Step 1: Resolve direct binary URL via GitHub API if original URL is HTML release page
+      final resolvedUrl = await resolveDirectBinaryUrl(downloadUrl, defaultTargetPlatform);
+      debugPrint('[AppUpdateService] Target download URL: $resolvedUrl');
+
       final client = http.Client();
-      final request = http.Request('GET', Uri.parse(downloadUrl));
+      final request = http.Request('GET', Uri.parse(resolvedUrl));
       request.headers['User-Agent'] = 'OHTControlApp/${AppConstants.currentVersion}';
       final response = await client.send(request);
 
@@ -207,11 +260,17 @@ class AppUpdateService {
         return null;
       }
 
+      final contentType = (response.headers['content-type'] ?? '').toLowerCase();
+      if (contentType.contains('html') || contentType.contains('text/plain')) {
+        debugPrint('[AppUpdateService] Rejected download: Content-Type is $contentType (HTML/Text web page)');
+        return null;
+      }
+
       final totalBytes = response.contentLength ?? 0;
       int downloadedBytes = 0;
 
       final tempDir = Directory.systemTemp;
-      var rawFileName = downloadUrl.split('/').last.split('?').first;
+      var rawFileName = resolvedUrl.split('/').last.split('?').first;
       if (rawFileName.isEmpty || !rawFileName.contains('.')) {
         if (Platform.isWindows) {
           rawFileName = 'oht_update.exe';
@@ -254,20 +313,24 @@ class AppUpdateService {
       // Check binary header to ensure it is a valid binary payload, not an HTML web page
       if (await saveFile.exists()) {
         final length = await saveFile.length();
-        if (length < 512) {
+        if (length < 1000) {
           debugPrint('[AppUpdateService] Downloaded file is too small ($length bytes), likely HTML or redirect page.');
           await saveFile.delete();
           return null;
         }
 
-        final bytes = await saveFile.openRead(0, 4).first;
-        if (bytes.isNotEmpty) {
-          // 0x3C is '<' (HTML tag start)
-          if (bytes[0] == 0x3C) {
-            debugPrint('[AppUpdateService] Downloaded payload is HTML text, not executable binary.');
-            await saveFile.delete();
-            return null;
-          }
+        final sampleBytes = await saveFile.openRead(0, 512).first;
+        final sampleText = String.fromCharCodes(sampleBytes).toLowerCase();
+
+        if (sampleText.contains('<!doctype') ||
+            sampleText.contains('<html') ||
+            sampleText.contains('<body') ||
+            sampleText.contains('<head') ||
+            sampleText.contains('{"message"') ||
+            sampleBytes.first == 0x3C) {
+          debugPrint('[AppUpdateService] Downloaded payload contains HTML/Text metadata, not binary package.');
+          await saveFile.delete();
+          return null;
         }
       }
 
