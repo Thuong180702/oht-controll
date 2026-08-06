@@ -46,6 +46,12 @@ class AuthStorage {
         await _saveAccountsList(accounts);
       }
     }
+
+    // Background sync accounts list from Cloudflare KV
+    final remoteAccounts = await AuthCloudService.fetchAccountsList();
+    if (remoteAccounts != null && remoteAccounts.isNotEmpty) {
+      await _saveAccountsList(remoteAccounts);
+    }
   }
 
   /// Get all registered user accounts
@@ -134,14 +140,15 @@ class AuthStorage {
 
     await _saveAccountsList(accounts);
 
-    // Sync with Cloudflare KV if username matches default endpoints
+    // Sync individual password & full accounts list with Cloudflare KV
     AuthCloudService.pushRemotePassword(
       username: account.username,
-      oldPassword: account.password,
       newPassword: account.password,
+      force: true,
     );
+    AuthCloudService.pushAccountsList(accounts);
 
-    return (success: true, message: 'Đã lưu thông tin tài khoản thành công.');
+    return (success: true, message: 'Đã lưu thông tin tài khoản và đồng bộ Cloudflare KV.');
   }
 
   /// Deletes a user account by username
@@ -154,7 +161,12 @@ class AuthStorage {
     final accounts = getAccounts();
     accounts.removeWhere((a) => a.username.trim().toLowerCase() == clean);
     await _saveAccountsList(accounts);
-    return (success: true, message: 'Đã xóa tài khoản thành công.');
+
+    // Delete remote key & push updated list to Cloudflare KV
+    AuthCloudService.deleteRemoteAccount(username);
+    AuthCloudService.pushAccountsList(accounts);
+
+    return (success: true, message: 'Đã xóa tài khoản và cập nhật Cloudflare KV.');
   }
 
   /// Toggles active / locked status of a user account
