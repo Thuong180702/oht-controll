@@ -1,9 +1,9 @@
 // Cloudflare Pages API endpoint for Native App Version Check (/api/version)
 export async function onRequest(context) {
   const versionData = {
-    version: "1.0.8",
-    build_number: 9,
-    release_notes: "Bản cập nhật v1.0.8: Nâng cấp Unit ID thành 1807-AUTO-OTA, tự động đóng gói oht-control-windows-v1.0.8.zip trên GitHub Releases.",
+    version: "1.0.9",
+    build_number: 10,
+    release_notes: "Bản cập nhật v1.0.9: Nâng cấp Unit ID thành 1807-OTA-SUCCESS, tự động đóng gói oht-control-windows-v1.0.9.zip trên GitHub Releases.",
     published_at: new Date().toISOString(),
     download_urls: {
       windows: "https://github.com/Thuong180702/oht-controll/releases/latest",
