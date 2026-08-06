@@ -1,16 +1,28 @@
 // Cloudflare Pages Function: /api/auth/password
 // Automatically handles GET and POST requests for password synchronization across devices.
 
+function getDefaultPassword(username) {
+  if (username && username.trim().toLowerCase() === 'admin') {
+    return 'admin@1234';
+  }
+  return 'Thaco@1234';
+}
+
 export async function onRequestGet(context) {
   const { env, request } = context;
   const url = new URL(request.url);
   const username = url.searchParams.get('username') || 'Thaco';
-  const defaultPassword = 'Thaco@1234';
+  const cleanUser = username.trim();
+  const lowerUser = cleanUser.toLowerCase();
 
-  let password = defaultPassword;
+  let password = getDefaultPassword(cleanUser);
   if (env.AUTH_STORE) {
     try {
-      const stored = await env.AUTH_STORE.get(`user_password_${username}`);
+      // Check exact username key or lowercase key
+      let stored = await env.AUTH_STORE.get(`user_password_${cleanUser}`);
+      if (!stored) {
+        stored = await env.AUTH_STORE.get(`user_password_${lowerUser}`);
+      }
       if (stored && stored.trim().length > 0) {
         password = stored;
       }
@@ -22,7 +34,7 @@ export async function onRequestGet(context) {
   return new Response(
     JSON.stringify({
       success: true,
-      username: username,
+      username: cleanUser,
       password: password,
     }),
     {
@@ -43,6 +55,8 @@ export async function onRequestPost(context) {
   try {
     const body = await request.json();
     const username = body.username || 'Thaco';
+    const cleanUser = username.trim();
+    const lowerUser = cleanUser.toLowerCase();
     const oldPassword = body.oldPassword;
     const newPassword = body.newPassword;
 
@@ -53,11 +67,13 @@ export async function onRequestPost(context) {
       );
     }
 
-    const defaultPassword = 'Thaco@1234';
-    let currentPassword = defaultPassword;
+    let currentPassword = getDefaultPassword(cleanUser);
 
     if (env.AUTH_STORE) {
-      const stored = await env.AUTH_STORE.get(`user_password_${username}`);
+      let stored = await env.AUTH_STORE.get(`user_password_${cleanUser}`);
+      if (!stored) {
+        stored = await env.AUTH_STORE.get(`user_password_${lowerUser}`);
+      }
       if (stored && stored.trim().length > 0) {
         currentPassword = stored;
       }
@@ -71,14 +87,15 @@ export async function onRequestPost(context) {
     }
 
     if (env.AUTH_STORE) {
-      await env.AUTH_STORE.put(`user_password_${username}`, newPassword);
+      await env.AUTH_STORE.put(`user_password_${cleanUser}`, newPassword);
+      await env.AUTH_STORE.put(`user_password_${lowerUser}`, newPassword);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Password updated and synchronized successfully',
-        username: username,
+        username: cleanUser,
         password: newPassword,
       }),
       {
