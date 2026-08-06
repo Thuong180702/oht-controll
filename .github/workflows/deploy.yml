@@ -1,4 +1,4 @@
-name: Deploy Flutter Web to Cloudflare Pages & GitHub Releases
+name: Deploy Flutter Web & Windows Release to Cloudflare & GitHub
 
 on:
   push:
@@ -13,8 +13,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
-    name: Build & Deploy PWA to Cloudflare Pages & Release
+  deploy-web:
+    name: Deploy Web to Cloudflare Pages
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,13 +40,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Extract Version Info
-        id: version_info
-        run: |
-          VERSION=$(node -e "try { console.log(require('./web/version.json').version); } catch(e) { console.log('1.0.1'); }")
-          echo "APP_VERSION=v$VERSION" >> $GITHUB_ENV
-          echo "Extracted version: v$VERSION"
-
       - name: Build Flutter Web Release
         run: flutter build web --release
 
@@ -58,41 +51,62 @@ jobs:
           self.addEventListener('activate', () => self.clients.claim());
           EOF
 
-      - name: Verify Secret Config
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-        run: |
-          echo "Checking GitHub Secrets format..."
-          echo "Account ID Length: ${#CLOUDFLARE_ACCOUNT_ID} characters"
-          echo "API Token Length: ${#CLOUDFLARE_API_TOKEN} characters"
-          echo "Project Name Length: ${#CLOUDFLARE_PROJECT_NAME} characters"
-          if [ ${#CLOUDFLARE_ACCOUNT_ID} -ne 32 ]; then
-            echo "::warning::CLOUDFLARE_ACCOUNT_ID is usually exactly 32 characters long. Current length is ${#CLOUDFLARE_ACCOUNT_ID}."
-          fi
-
       - name: Create Cloudflare Pages Project & Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          echo "Ensuring project '${{ secrets.CLOUDFLARE_PROJECT_NAME }}' exists on Cloudflare Pages..."
           npx wrangler pages project create "${{ secrets.CLOUDFLARE_PROJECT_NAME }}" --production-branch="main" || true
-          echo "Deploying build/web to Cloudflare Pages..."
           npx wrangler pages deploy build/web --project-name="${{ secrets.CLOUDFLARE_PROJECT_NAME }}" --branch="main" --commit-dirty=true
-          echo "================================================="
-          echo "🚀 DEPLOY SUCCESSFUL!"
-          echo "🌐 Your live Flutter Web App is available at:"
-          echo "👉 https://${{ secrets.CLOUDFLARE_PROJECT_NAME }}.pages.dev"
-          echo "================================================="
 
-      - name: Create Automated GitHub Release
+  build-and-release-windows:
+    name: Build & Release Windows App & GitHub Release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Extract Version Info
+        id: version_info
+        shell: bash
+        run: |
+          VERSION=$(node -e "try { console.log(require('./web/version.json').version); } catch(e) { console.log('1.0.1'); }")
+          echo "APP_VERSION=v$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: v$VERSION"
+
+      - name: Build Flutter Windows Release
+        run: flutter build windows --release
+
+      - name: Package Windows Binary ZIP
+        shell: powershell
+        run: |
+          $version = "$env:APP_VERSION"
+          $zipName = "oht-control-windows-$version.zip"
+          Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "$zipName" -Force
+          echo "Created package $zipName"
+
+      - name: Create Automated GitHub Release with Windows ZIP
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.APP_VERSION }}
           name: Release ${{ env.APP_VERSION }}
           body: "Bản cập nhật tự động cho OHT Control System (${{ env.APP_VERSION }})"
+          files: |
+            oht-control-windows-*.zip
           draft: false
           prerelease: false
         env:
