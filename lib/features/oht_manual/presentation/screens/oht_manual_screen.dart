@@ -27,24 +27,28 @@ class OhtManualScreen extends StatefulWidget {
   const OhtManualScreen({
     required this.controller,
     required this.username,
+    this.userRole = 1,
     required this.activeItem,
     required this.languageCode,
     required this.themeMode,
     required this.onLanguageChanged,
     required this.onThemeModeChanged,
     required this.onTopNavSelected,
+    this.onOpenUserManagement,
     required this.onDisconnect,
     required this.onLogout,
     super.key,
   });
   final OhtManualController controller;
   final String username;
+  final int userRole;
   final IndustrialTopBarItem activeItem;
   final String languageCode;
   final ThemeMode themeMode;
   final ValueChanged<String> onLanguageChanged;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final ValueChanged<IndustrialTopBarItem> onTopNavSelected;
+  final VoidCallback? onOpenUserManagement;
   final Future<void> Function() onDisconnect;
   final Future<void> Function() onLogout;
   @override
@@ -373,6 +377,7 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
                   child: switch (widget.activeItem) {
                     IndustrialTopBarItem.dashboard => _DashboardPanel(
                       controller: ctrl,
+                      userRole: widget.userRole,
                       onSpeedTap: _showSpeedPanel,
                     ),
                     IndustrialTopBarItem.diagnostics => _ResponsiveDiagnosticsPanel(
@@ -382,11 +387,13 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
                     IndustrialTopBarItem.settings => _SettingsPanel(
                       controller: ctrl,
                       username: widget.username,
+                      userRole: widget.userRole,
                       languageCode: widget.languageCode,
                       themeMode: widget.themeMode,
                       onLanguageChanged: widget.onLanguageChanged,
                       onThemeModeChanged: widget.onThemeModeChanged,
                       onChangePassword: _showChangePasswordPanel,
+                      onOpenUserManagement: widget.onOpenUserManagement,
                       onDisconnect: widget.onDisconnect,
                       onLogout: widget.onLogout,
                     ),
@@ -405,10 +412,12 @@ class _OhtManualScreenState extends State<OhtManualScreen> {
 class _DashboardPanel extends StatelessWidget {
   const _DashboardPanel({
     required this.controller,
+    this.userRole = 1,
     required this.onSpeedTap,
   });
 
   final OhtManualController controller;
+  final int userRole;
   final VoidCallback onSpeedTap;
 
   @override
@@ -419,6 +428,28 @@ class _DashboardPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (userRole == 2)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.warningBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.warning),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.visibility, color: AppColors.warning, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      AppLocale.t('Chế độ chỉ giám sát (Viewer Mode) - Quyền hạn tài khoản hiện tại không cho phép thao tác điều khiển thiết bị.'),
+                      style: TextStyle(color: AppColors.warning, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           _Utf8DashboardTelemetryStrip(
             controller: controller,
             onSpeedTap: onSpeedTap,
@@ -3100,22 +3131,26 @@ class _SettingsPanel extends StatelessWidget {
   const _SettingsPanel({
     required this.controller,
     required this.username,
+    this.userRole = 1,
     required this.languageCode,
     required this.themeMode,
     required this.onLanguageChanged,
     required this.onThemeModeChanged,
     required this.onChangePassword,
+    this.onOpenUserManagement,
     required this.onDisconnect,
     required this.onLogout,
   });
 
   final OhtManualController controller;
   final String username;
+  final int userRole;
   final String languageCode;
   final ThemeMode themeMode;
   final ValueChanged<String> onLanguageChanged;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback onChangePassword;
+  final VoidCallback? onOpenUserManagement;
   final Future<void> Function() onDisconnect;
   final Future<void> Function() onLogout;
 
@@ -3137,11 +3172,13 @@ class _SettingsPanel extends StatelessWidget {
             child: _SettingsCardGrid(
               controller: controller,
               username: username,
+              userRole: userRole,
               languageCode: languageCode,
               themeMode: themeMode,
               onLanguageChanged: onLanguageChanged,
               onThemeModeChanged: onThemeModeChanged,
               onChangePassword: onChangePassword,
+              onOpenUserManagement: onOpenUserManagement,
               onDisconnect: onDisconnect,
               onLogout: onLogout,
             ),
@@ -3156,22 +3193,26 @@ class _SettingsCardGrid extends StatelessWidget {
   const _SettingsCardGrid({
     required this.controller,
     required this.username,
+    this.userRole = 1,
     required this.languageCode,
     required this.themeMode,
     required this.onLanguageChanged,
     required this.onThemeModeChanged,
     required this.onChangePassword,
+    this.onOpenUserManagement,
     required this.onDisconnect,
     required this.onLogout,
   });
 
   final OhtManualController controller;
   final String username;
+  final int userRole;
   final String languageCode;
   final ThemeMode themeMode;
   final ValueChanged<String> onLanguageChanged;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback onChangePassword;
+  final VoidCallback? onOpenUserManagement;
   final Future<void> Function() onDisconnect;
   final Future<void> Function() onLogout;
 
@@ -3294,25 +3335,46 @@ class _SettingsCardGrid extends StatelessWidget {
   }
 
   Widget _buildUserCard() {
+    final roleLabel = switch (userRole) {
+      0 => '0 - Admin (Quản trị viên)',
+      1 => '1 - Điều khiển (Operator)',
+      2 => '2 - Chỉ giám sát (Viewer)',
+      _ => 'User',
+    };
+
     return _SettingsCard(
       key: const Key('settings_user_panel'),
       title: AppLocale.t('Thông tin vận hành'),
       icon: Icons.account_circle_outlined,
       children: [
         _SettingsRow(label: AppLocale.t('Người vận hành'), value: username),
+        _SettingsRow(label: AppLocale.t('Phân quyền'), value: roleLabel),
         _SettingsRow(
           label: AppLocale.t('Giao thức'),
           value: controller.protocol.label,
         ),
         _SettingsRow(label: 'Endpoint', value: controller.activeEndpoint),
         const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: FilledButton.icon(
-            onPressed: onChangePassword,
-            icon: Icon(Icons.lock_reset_rounded, size: 16),
-            label: Text(AppLocale.t('Đổi mật khẩu')),
-          ),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            FilledButton.icon(
+              onPressed: onChangePassword,
+              icon: const Icon(Icons.lock_reset_rounded, size: 16),
+              label: Text(AppLocale.t('Đổi mật khẩu')),
+            ),
+            if (userRole == 0 && onOpenUserManagement != null)
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade700,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: onOpenUserManagement,
+                icon: const Icon(Icons.manage_accounts, size: 16),
+                label: Text(AppLocale.t('Quản lý tài khoản (Admin)')),
+              ),
+          ],
         ),
       ],
     );

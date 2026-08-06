@@ -12,9 +12,10 @@ import 'features/oht_manual/presentation/controllers/oht_manual_controller.dart'
 import 'features/oht_manual/presentation/screens/connection_screen.dart';
 import 'features/oht_manual/presentation/screens/login_screen.dart';
 import 'features/oht_manual/presentation/screens/oht_manual_screen.dart';
+import 'features/oht_manual/presentation/screens/user_management_screen.dart';
 import 'features/oht_manual/presentation/widgets/industrial_top_bar.dart';
 
-enum _AppScreen { login, connection, main }
+enum _AppScreen { login, connection, main, userManagement }
 
 class OhtManualApp extends StatefulWidget {
   const OhtManualApp({this.forceAndroidViewport, super.key});
@@ -37,6 +38,8 @@ class _OhtManualAppState extends State<OhtManualApp> {
   bool _prefsLoaded = false;
 
   Timer? _sessionCheckTimer;
+
+  int get _userRole => AuthStorage.getCurrentUserRole(_username);
 
   @override
   void initState() {
@@ -120,6 +123,12 @@ class _OhtManualAppState extends State<OhtManualApp> {
     await AppPreferences.setSavedScreen('main');
   }
 
+  void _onOpenUserManagement() {
+    setState(() {
+      _screen = _AppScreen.userManagement;
+    });
+  }
+
   Future<void> _loadAsyncPreferences() async {
     final languageCode = await AppPreferences.getLanguageCode();
     final themeMode = await AppPreferences.getThemeMode();
@@ -188,14 +197,26 @@ class _OhtManualAppState extends State<OhtManualApp> {
         return OhtManualScreen(
           controller: _controller,
           username: _username,
+          userRole: _userRole,
           activeItem: _activeMainTab,
           languageCode: _languageCode,
           themeMode: _themeMode,
           onLanguageChanged: _setLanguageCode,
           onThemeModeChanged: _setThemeMode,
           onTopNavSelected: _onTopNavSelected,
+          onOpenUserManagement: _onOpenUserManagement,
           onDisconnect: _onDisconnect,
           onLogout: _onLogout,
+        );
+      case _AppScreen.userManagement:
+        return UserManagementScreen(
+          currentUsername: _username,
+          onBack: () {
+            setState(() {
+              _screen = _AppScreen.main;
+              _activeMainTab = IndustrialTopBarItem.settings;
+            });
+          },
         );
     }
   }

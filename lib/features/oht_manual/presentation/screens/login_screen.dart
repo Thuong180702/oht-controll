@@ -50,34 +50,35 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  void _showAuthError() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocale.t('Sai tên đăng nhập hoặc mật khẩu.')),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || !_authReady) return;
 
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 450));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     final username = _usernameCtrl.text.trim();
     final password = _passwordCtrl.text;
-    final validPassword = await AuthStorage.getPasswordForLogin();
-    if (username != AuthStorage.defaultUsername ||
-        password != validPassword) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      _showAuthError();
+    
+    final result = await AuthStorage.authenticateUser(
+      username: username,
+      password: password,
+    );
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocale.t(result.message)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 
-    await AuthStorage.saveActiveSessionPassword(password);
-    if (mounted) widget.onLogin(username);
+    widget.onLogin(username);
   }
 
   @override
