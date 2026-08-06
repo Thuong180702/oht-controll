@@ -286,15 +286,26 @@ class AppUpdateService {
 
       if (Platform.isWindows) {
         final currentExePath = Platform.resolvedExecutable;
+        final exeName = currentExePath.split(Platform.pathSeparator).last;
         final currentAppDir = Directory(currentExePath).parent.path;
         final batFile = File('${Directory.systemTemp.path}${Platform.pathSeparator}oht_updater.bat');
 
         if (path.toLowerCase().endsWith('.zip')) {
-          // Extract updated ZIP bundle (contains .exe, flutter_windows.dll, and data/ folder) over application directory
           final batContent = '''
 @echo off
-timeout /t 2 /nobreak > NUL
-powershell -Command "Expand-Archive -Path '$path' -DestinationPath '$currentAppDir' -Force"
+setlocal enabledelayedexpansion
+
+:wait_loop
+tasklist /FI "IMAGENAME eq $exeName" 2>NUL | find /I "$exeName" >NUL
+if "%ERRORLEVEL%"=="0" (
+    timeout /t 1 /nobreak >NUL
+    goto wait_loop
+)
+
+timeout /t 1 /nobreak >NUL
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath '$path' -DestinationPath '$currentAppDir' -Force"
+
 start "" "$currentExePath"
 del "%~f0"
 ''';
@@ -302,10 +313,16 @@ del "%~f0"
           await Process.start('cmd.exe', ['/c', batFile.path], runInShell: true);
           exit(0);
         } else if (path.toLowerCase().endsWith('.exe') || path.toLowerCase().endsWith('.msi')) {
-          // Launch installer executable
           final batContent = '''
 @echo off
-timeout /t 2 /nobreak > NUL
+:wait_loop
+tasklist /FI "IMAGENAME eq $exeName" 2>NUL | find /I "$exeName" >NUL
+if "%ERRORLEVEL%"=="0" (
+    timeout /t 1 /nobreak >NUL
+    goto wait_loop
+)
+
+timeout /t 1 /nobreak >NUL
 start "" "$path"
 del "%~f0"
 ''';
