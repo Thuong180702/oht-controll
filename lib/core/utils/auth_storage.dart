@@ -233,9 +233,24 @@ class AuthStorage {
     return defaultPassword;
   }
 
+  /// Returns false if the session should be terminated:
+  /// - password was changed from another device, OR
+  /// - account was locked by Admin.
   static Future<bool> isSessionValid(String username) async {
     final clean = username.trim();
     if (clean.isEmpty) return true;
+
+    // Check isLocked first from the synced accounts list in KV
+    final remoteStatus = await AuthCloudService.fetchRemoteAccountStatus(clean);
+    if (remoteStatus != null && remoteStatus.isLocked) {
+      return false; // Account was locked by Admin — force logout
+    }
+
+    // Also check local lock status (in case offline but account was pre-locked)
+    final localAccount = findAccount(clean);
+    if (localAccount != null && localAccount.isLocked) {
+      return false;
+    }
 
     final activePassword = SessionStorage.getItem(_activeSessionPasswordKey);
     if (activePassword == null || activePassword.isEmpty) return true;
@@ -243,7 +258,7 @@ class AuthStorage {
     final remotePassword = await AuthCloudService.fetchRemotePassword(username: clean);
     if (remotePassword != null && remotePassword.isNotEmpty) {
       if (remotePassword != activePassword) {
-        return false;
+        return false; // Password changed from another device
       }
     }
     return true;

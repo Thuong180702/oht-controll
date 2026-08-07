@@ -6,6 +6,7 @@ import 'dart:async';
 import 'core/theme/app_theme.dart';
 import 'core/utils/app_locale.dart';
 import 'core/utils/app_preferences.dart';
+import 'core/utils/auth_cloud_service.dart';
 import 'core/utils/auth_storage.dart';
 import 'core/utils/session_storage.dart';
 import 'features/oht_manual/presentation/controllers/oht_manual_controller.dart';
@@ -145,6 +146,27 @@ class _OhtManualAppState extends State<OhtManualApp> {
   Future<void> _checkLiveSession() async {
     if (_screen == _AppScreen.login || !mounted || _username.isEmpty) return;
     try {
+      // Check lock status from Cloudflare KV
+      final remoteStatus = await AuthCloudService.fetchRemoteAccountStatus(_username);
+      final isLocked = remoteStatus?.isLocked ?? false;
+
+      if (isLocked) {
+        if (mounted && _screen != _AppScreen.login) {
+          await _onLogout();
+          _scaffoldMessengerKey.currentState?.showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.red.shade700,
+              content: Text(
+                AppLocale.t('Tài khoản của bạn đã bị khóa bởi Admin. Vui lòng liên hệ quản trị viên.'),
+              ),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
+
       final isValid = await AuthStorage.isSessionValid(_username);
       if (!isValid && mounted && _screen != _AppScreen.login) {
         await _onLogout();

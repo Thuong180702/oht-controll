@@ -115,6 +115,24 @@ class AuthCloudService {
     }
   }
 
+  /// Fetch lock + role status for a specific user from Cloudflare KV accounts list.
+  /// Returns null if offline or user not found.
+  static Future<({bool isLocked, int role})?> fetchRemoteAccountStatus(String username) async {
+    try {
+      final accounts = await fetchAccountsList();
+      if (accounts == null) return null;
+      final clean = username.trim().toLowerCase();
+      for (final acc in accounts) {
+        if (acc.username.trim().toLowerCase() == clean) {
+          return (isLocked: acc.isLocked, role: acc.role);
+        }
+      }
+    } catch (e) {
+      debugPrint('[AuthCloudService] Fetch account status error: $e');
+    }
+    return null;
+  }
+
   /// Fetch complete user accounts list from Cloudflare KV
   static Future<List<UserAccount>?> fetchAccountsList() async {
     try {
