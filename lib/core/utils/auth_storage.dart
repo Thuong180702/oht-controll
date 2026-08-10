@@ -154,7 +154,7 @@ class AuthStorage {
     );
     AuthCloudService.pushAccountsList(accounts);
 
-    return (success: true, message: 'Đã lưu thông tin tài khoản và đồng bộ Cloudflare KV.');
+    return (success: true, message: 'Đã lưu thông tin tài khoản thành công.');
   }
 
   /// Deletes a user account by username
@@ -172,7 +172,7 @@ class AuthStorage {
     AuthCloudService.deleteRemoteAccount(username);
     AuthCloudService.pushAccountsList(accounts);
 
-    return (success: true, message: 'Đã xóa tài khoản và cập nhật Cloudflare KV.');
+    return (success: true, message: 'Đã xóa tài khoản thành công.');
   }
 
   /// Toggles active / locked status of a user account

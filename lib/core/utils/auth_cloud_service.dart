@@ -68,7 +68,7 @@ class AuthCloudService {
       if (response.statusCode == 200 && data['success'] == true) {
         return (
           success: true,
-          message: 'Đã cập nhật và đồng bộ mật khẩu lên Cloudflare KV.',
+          message: 'Thay đổi mật khẩu thành công.',
         );
       } else {
         final msg = data['message'] as String? ?? 'Không thể đổi mật khẩu.';
@@ -81,7 +81,7 @@ class AuthCloudService {
       debugPrint('[AuthCloudService] Remote push error: $e');
       return (
         success: false,
-        message: 'Vui lòng kết nối mạng để đổi mật khẩu và đồng bộ hệ thống.',
+        message: 'Vui lòng kiểm tra kết nối mạng để thay đổi mật khẩu.',
       );
     }
   }

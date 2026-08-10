@@ -145,7 +145,7 @@ export async function onRequestPost(context) {
         }
       }
       return new Response(
-        JSON.stringify({ success: true, message: 'Accounts list synchronized to Cloudflare KV' }),
+        JSON.stringify({ success: true, message: 'Accounts list synchronized successfully' }),
         { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
       );
     }
@@ -215,7 +215,7 @@ export async function onRequestPost(context) {
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Password updated and synchronized successfully',
+        message: 'Password updated successfully',
         username: cleanUser,
         password: newPassword,
       }),
@@ -273,7 +273,7 @@ export async function onRequestDelete(context) {
   return new Response(
     JSON.stringify({
       success: true,
-      message: `User ${cleanUser} deleted from Cloudflare KV`,
+      message: `User ${cleanUser} deleted successfully`,
     }),
     {
       headers: {
