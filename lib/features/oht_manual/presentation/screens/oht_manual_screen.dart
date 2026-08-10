@@ -957,7 +957,7 @@ class _Utf8DashboardStatusMetric extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Trạng Thái (Telemetry)',
+              AppLocale.t('Trạng Thái (Telemetry)'),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -2965,7 +2965,7 @@ class _LogsToolbar extends StatelessWidget {
           color: startDate != null ? AppColors.primary : AppColors.textSecondary,
         ),
         label: Text(
-          'Từ: ${_formatDateLabel(startDate, 'Chọn ngày')}',
+          '${AppLocale.t('Từ')}: ${_formatDateLabel(startDate, AppLocale.t('Chọn ngày'))}',
           style: TextStyle(
             fontSize: 11,
             color: startDate != null ? AppColors.primary : AppColors.textSecondary,
@@ -2981,7 +2981,7 @@ class _LogsToolbar extends StatelessWidget {
           color: endDate != null ? AppColors.primary : AppColors.textSecondary,
         ),
         label: Text(
-          'Đến: ${_formatDateLabel(endDate, 'Chọn ngày')}',
+          '${AppLocale.t('Đến')}: ${_formatDateLabel(endDate, AppLocale.t('Chọn ngày'))}',
           style: TextStyle(
             fontSize: 11,
             color: endDate != null ? AppColors.primary : AppColors.textSecondary,

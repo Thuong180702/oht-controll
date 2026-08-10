@@ -286,7 +286,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(AppLocale.t('Xác nhận xóa tài khoản')),
-        content: Text(AppLocale.t('Bạn có chắc chắn muốn xóa tài khoản "${account.username}"? Hành động này không thể hoàn tác.')),
+        content: Text(
+          AppLocale.isEnglish
+              ? 'Are you sure you want to delete account "${account.username}"? This action cannot be undone.'
+              : 'Bạn có chắc chắn muốn xóa tài khoản "${account.username}"? Hành động này không thể hoàn tác.',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppLocale.t('Hủy'))),
           ElevatedButton(
