@@ -805,12 +805,12 @@ Future<void> _downloadEventsAsExcel(
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Đã tải log Excel: $result')));
+    ).showSnackBar(const SnackBar(content: Text('Xuất file nhật ký Excel thành công.')));
   } catch (error) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Không thể tải log Excel: $error')));
+    ).showSnackBar(const SnackBar(content: Text('Không thể xuất file nhật ký Excel. Vui lòng thử lại.')));
   }
 }
 

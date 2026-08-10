@@ -2730,18 +2730,18 @@ class _LogsPanelState extends State<_LogsPanel> {
         .toList();
     Future<void> downloadLog() async {
       try {
-        final result = await EventLogExcelExporter.export(visibleEvents);
+        await EventLogExcelExporter.export(visibleEvents);
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${AppLocale.t('Đã tải log Excel')}: $result'),
+            content: Text(AppLocale.t('Xuất file nhật ký Excel thành công.')),
           ),
         );
       } catch (error) {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${AppLocale.t('Không thể tải log Excel')}: $error'),
+            content: Text(AppLocale.t('Không thể xuất file nhật ký Excel. Vui lòng thử lại.')),
           ),
         );
       }
@@ -3431,7 +3431,7 @@ class _SettingsCardGrid extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        AppLocale.t('Hệ thống Web PWA đã nạp đủ package và sẵn sàng 100% cho chế độ Offline!'),
+                        AppLocale.t('Ứng dụng đã sẵn sàng hoạt động ngoại tuyến (Offline)!'),
                       ),
                       backgroundColor: AppColors.success,
                     ),
