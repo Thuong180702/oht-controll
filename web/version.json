@@ -1,7 +1,7 @@
 {
-  "version": "1.0.10",
-  "build_number": 11,
-  "release_notes": "Bản cập nhật v1.0.10: Nâng cấp Unit ID thành 1807-T, tự động khôi phục phiên đăng nhập sau OTA update.",
+  "version": "1.0.11",
+  "build_number": 12,
+  "release_notes": "Bản cập nhật v1.0.11: Nâng cấp Unit ID thành THACO-R&D.",
   "published_at": "2026-08-06T13:16:00Z",
   "download_urls": {
     "windows": "https://github.com/Thuong180702/oht-controll/releases/latest",
