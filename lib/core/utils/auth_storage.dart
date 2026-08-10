@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/user_account.dart';
 import 'auth_cloud_service.dart';
+import 'app_preferences.dart';
 import 'session_storage.dart';
 
 class AuthStorage {
@@ -267,9 +268,14 @@ class AuthStorage {
   static Future<({bool success, String message})> changePassword({
     required String oldPassword,
     required String newPassword,
+    String? username,
   }) async {
+    final targetUser = (username != null && username.trim().isNotEmpty)
+        ? username.trim()
+        : (AppPreferences.getLoggedInUser() ?? defaultUsername);
+
     final result = await AuthCloudService.pushRemotePassword(
-      username: defaultUsername,
+      username: targetUser,
       oldPassword: oldPassword,
       newPassword: newPassword,
     );
@@ -278,7 +284,7 @@ class AuthStorage {
       await SessionStorage.setItem(_passwordKey, newPassword);
       await SessionStorage.setItem(_activeSessionPasswordKey, newPassword);
       
-      final account = findAccount(defaultUsername);
+      final account = findAccount(targetUser);
       if (account != null) {
         await saveAccount(account.copyWith(password: newPassword));
       }

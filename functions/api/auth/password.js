@@ -23,10 +23,42 @@ export async function onRequestGet(context) {
         console.error('Error reading accounts list from KV:', e);
       }
     }
+    let accounts = accountsListJson ? JSON.parse(accountsListJson) : null;
+
+    // Cross-verify passwords in accounts list with individual user_password_* keys
+    if (env.AUTH_STORE && Array.isArray(accounts)) {
+      let modified = false;
+      for (let acc of accounts) {
+        if (acc && acc.username) {
+          const uClean = acc.username.trim();
+          const uLower = uClean.toLowerCase();
+          try {
+            let stored = await env.AUTH_STORE.get(`user_password_${uClean}`);
+            if (!stored) {
+              stored = await env.AUTH_STORE.get(`user_password_${uLower}`);
+            }
+            if (stored && stored.trim().length > 0 && stored !== acc.password) {
+              acc.password = stored;
+              modified = true;
+            }
+          } catch (e) {
+            console.error(`Error checking password key for ${uClean}:`, e);
+          }
+        }
+      }
+      if (modified) {
+        try {
+          await env.AUTH_STORE.put('oht_user_accounts_list', JSON.stringify(accounts));
+        } catch (e) {
+          console.error('Error saving updated accounts list to KV:', e);
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
-        accounts: accountsListJson ? JSON.parse(accountsListJson) : null,
+        accounts: accounts,
       }),
       {
         headers: {
@@ -51,6 +83,18 @@ export async function onRequestGet(context) {
       }
       if (stored && stored.trim().length > 0) {
         password = stored;
+      } else {
+        // Check inside oht_user_accounts_list as fallback
+        const accountsListJson = await env.AUTH_STORE.get('oht_user_accounts_list');
+        if (accountsListJson) {
+          const accounts = JSON.parse(accountsListJson);
+          if (Array.isArray(accounts)) {
+            const acc = accounts.find(a => a && a.username && a.username.trim().toLowerCase() === lowerUser);
+            if (acc && acc.password) {
+              password = acc.password;
+            }
+          }
+        }
       }
     } catch (e) {
       console.error('Error reading KV AUTH_STORE:', e);
@@ -87,6 +131,18 @@ export async function onRequestPost(context) {
     if (action === 'accounts' || body.accountsList) {
       if (env.AUTH_STORE && body.accountsList) {
         await env.AUTH_STORE.put('oht_user_accounts_list', JSON.stringify(body.accountsList));
+
+        // Also update individual user_password_<username> keys for each account in list
+        if (Array.isArray(body.accountsList)) {
+          for (const acc of body.accountsList) {
+            if (acc && acc.username && acc.password) {
+              const uClean = acc.username.trim();
+              const uLower = uClean.toLowerCase();
+              await env.AUTH_STORE.put(`user_password_${uClean}`, acc.password);
+              await env.AUTH_STORE.put(`user_password_${uLower}`, acc.password);
+            }
+          }
+        }
       }
       return new Response(
         JSON.stringify({ success: true, message: 'Accounts list synchronized to Cloudflare KV' }),
@@ -129,8 +185,31 @@ export async function onRequestPost(context) {
     }
 
     if (env.AUTH_STORE) {
+      // 1. Update individual user password keys
       await env.AUTH_STORE.put(`user_password_${cleanUser}`, newPassword);
       await env.AUTH_STORE.put(`user_password_${lowerUser}`, newPassword);
+
+      // 2. Update password in oht_user_accounts_list JSON array in KV
+      try {
+        const accountsListJson = await env.AUTH_STORE.get('oht_user_accounts_list');
+        if (accountsListJson) {
+          let accounts = JSON.parse(accountsListJson);
+          if (Array.isArray(accounts)) {
+            let updated = false;
+            for (let acc of accounts) {
+              if (acc && acc.username && acc.username.trim().toLowerCase() === lowerUser) {
+                acc.password = newPassword;
+                updated = true;
+              }
+            }
+            if (updated) {
+              await env.AUTH_STORE.put('oht_user_accounts_list', JSON.stringify(accounts));
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error updating oht_user_accounts_list on password change:', e);
+      }
     }
 
     return new Response(
@@ -174,6 +253,18 @@ export async function onRequestDelete(context) {
     try {
       await env.AUTH_STORE.delete(`user_password_${cleanUser}`);
       await env.AUTH_STORE.delete(`user_password_${lowerUser}`);
+
+      // Also remove user from oht_user_accounts_list in KV
+      const accountsListJson = await env.AUTH_STORE.get('oht_user_accounts_list');
+      if (accountsListJson) {
+        let accounts = JSON.parse(accountsListJson);
+        if (Array.isArray(accounts)) {
+          const filtered = accounts.filter(
+            a => a && a.username && a.username.trim().toLowerCase() !== lowerUser
+          );
+          await env.AUTH_STORE.put('oht_user_accounts_list', JSON.stringify(filtered));
+        }
+      }
     } catch (e) {
       console.error('Error deleting key from KV:', e);
     }
@@ -202,3 +293,4 @@ export async function onRequestOptions() {
     },
   });
 }
+
