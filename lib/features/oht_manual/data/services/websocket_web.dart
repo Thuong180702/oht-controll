@@ -48,7 +48,7 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
       ConnectionStatus(
         phase: ConnectionPhase.connecting,
         endpoint: endpoint,
-        message: 'Connecting to OHT WebSocket',
+        message: 'Đang kết nối tới thiết bị OHT...',
         changedAt: DateTime.now(),
       ),
     );
@@ -66,7 +66,7 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
             ConnectionStatus(
               phase: ConnectionPhase.connected,
               endpoint: endpoint,
-              message: 'Connected to OHT WebSocket',
+              message: 'Đã kết nối tới thiết bị OHT',
               changedAt: DateTime.now(),
             ),
           );
@@ -85,10 +85,10 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
         socket.onError.listen((_) {
           if (!openCompleter.isCompleted) {
             openCompleter.completeError(
-              StateError('WebSocket connect failed'),
+              StateError('Không thể kết nối thiết bị'),
             );
           }
-          _handleSocketError('WebSocket error');
+          _handleSocketError('Không thể kết nối tới thiết bị OHT');
         }),
       );
 
@@ -96,7 +96,7 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
         socket.onClose.listen((_) {
           if (!openCompleter.isCompleted) {
             openCompleter.completeError(
-              StateError('WebSocket closed before open'),
+              StateError('Kết nối đã bị ngắt'),
             );
           }
           _handleSocketDone();
@@ -109,14 +109,14 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
         ConnectionStatus(
           phase: ConnectionPhase.error,
           endpoint: endpoint,
-          message: 'WebSocket connect failed: $error',
+          message: 'Không thể kết nối tới thiết bị OHT.',
           changedAt: DateTime.now(),
         ),
       );
       _eventController.add(
         AlarmEvent.now(
           severity: EventSeverity.critical,
-          message: 'WebSocket connect failed: $error',
+          message: 'Không thể kết nối tới thiết bị OHT.',
         ),
       );
       rethrow;
@@ -136,7 +136,7 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
       ConnectionStatus(
         phase: ConnectionPhase.disconnected,
         endpoint: _status.endpoint,
-        message: 'Disconnected',
+        message: 'Đã ngắt kết nối',
         changedAt: DateTime.now(),
       ),
     );
@@ -146,7 +146,7 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
   Future<void> sendCommand(ManualCommand command) async {
     final socket = _socket;
     if (socket == null || socket.readyState != html.WebSocket.OPEN) {
-      throw StateError('WebSocket is not connected');
+      throw StateError('Chưa kết nối tới thiết bị OHT');
     }
     socket.send(jsonEncode(command.toJson()));
   }
@@ -197,14 +197,14 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
           _eventController.add(
             AlarmEvent.now(
               severity: EventSeverity.info,
-              message: decoded['message']?.toString() ?? 'OHT event',
+              message: decoded['message']?.toString() ?? 'Sự kiện OHT',
             ),
           );
         case OhtMessageType.unknown:
           _eventController.add(
             AlarmEvent.now(
               severity: EventSeverity.warning,
-              message: 'Ignored unknown WebSocket message type',
+              message: 'Nhận dữ liệu không xác định từ thiết bị',
             ),
           );
       }
@@ -212,7 +212,7 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
       _eventController.add(
         AlarmEvent.now(
           severity: EventSeverity.warning,
-          message: 'Invalid WebSocket payload: $error',
+          message: 'Dữ liệu nhận từ thiết bị không hợp lệ',
         ),
       );
     }
@@ -236,7 +236,7 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
     _eventController.add(
       AlarmEvent.now(
         severity: accepted ? EventSeverity.ack : EventSeverity.nack,
-        message: details.isEmpty ? 'Manual command acknowledgement' : details,
+        message: details.isEmpty ? 'Phản hồi lệnh điều khiển' : details,
       ),
     );
   }
@@ -246,14 +246,14 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
       ConnectionStatus(
         phase: ConnectionPhase.error,
         endpoint: _status.endpoint,
-        message: 'WebSocket error: $error',
+        message: 'Lỗi kết nối thiết bị OHT',
         changedAt: DateTime.now(),
       ),
     );
     _eventController.add(
       AlarmEvent.now(
         severity: EventSeverity.critical,
-        message: 'WebSocket error: $error',
+        message: 'Lỗi gián đoạn truyền nhận dữ liệu với thiết bị OHT',
       ),
     );
   }
@@ -266,14 +266,14 @@ class WebWebSocketOhtCommunicationService implements OhtCommunicationService {
       ConnectionStatus(
         phase: ConnectionPhase.disconnected,
         endpoint: _status.endpoint,
-        message: 'WebSocket closed by remote OHT',
+        message: 'Thiết bị OHT đã ngắt kết nối',
         changedAt: DateTime.now(),
       ),
     );
     _eventController.add(
       AlarmEvent.now(
         severity: EventSeverity.warning,
-        message: 'WebSocket closed by remote OHT',
+        message: 'Thiết bị OHT đã ngắt kết nối',
       ),
     );
   }

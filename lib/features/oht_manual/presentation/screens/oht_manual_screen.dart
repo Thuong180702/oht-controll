@@ -3396,19 +3396,19 @@ class _SettingsCardGrid extends StatelessWidget {
   Widget _buildSystemHealthCard() {
     return _SettingsCard(
       key: const Key('settings_system_health_panel'),
-      title: AppLocale.t('Trạng thái Web & Offline PWA'),
+      title: AppLocale.t('Trạng thái hoạt động ngoại tuyến'),
       icon: Icons.health_and_safety_outlined,
       children: [
         _SettingsRow(
-          label: AppLocale.t('Ứng dụng Web PWA'),
-          value: AppLocale.t('Sẵn sàng Offline'),
+          label: AppLocale.t('Chế độ ngoại tuyến'),
+          value: AppLocale.t('Sẵn sàng'),
         ),
         _SettingsRow(
-          label: AppLocale.t('Service Worker'),
-          value: AppLocale.t('Hoạt động (Cache v15)'),
+          label: AppLocale.t('Bộ nhớ tạm ứng dụng'),
+          value: AppLocale.t('Hoạt động'),
         ),
         _SettingsRow(
-          label: AppLocale.t('Gói tài nguyên Web'),
+          label: AppLocale.t('Tài nguyên ứng dụng'),
           value: AppLocale.t('Đã nạp 100%'),
         ),
         const SizedBox(height: 12),
@@ -3438,7 +3438,7 @@ class _SettingsCardGrid extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.verified_outlined, size: 16),
-                label: Text(AppLocale.t('Kiểm tra PWA Offline')),
+                label: Text(AppLocale.t('Kiểm tra kết nối ngoại tuyến')),
               );
             },
           ),
