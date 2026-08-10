@@ -204,7 +204,6 @@ class AppLocale {
     'ÁP DỤNG CẤU HÌNH': 'APPLY CONFIGURATION',
 
     // Additional User Management & UI Translations
-    'Trạng Thái (Telemetry)': 'Telemetry Status',
     'Sẵn sàng': 'Ready',
     'Hoạt động': 'Active',
     'Đã nạp 100%': '100% Loaded',
